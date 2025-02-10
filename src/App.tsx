@@ -5,6 +5,7 @@ import TeamFormation from './components/TeamFormation';
 import MatchRegistration from './components/MatchRegistration';
 import VotingSystem from './components/VotingSystem';
 import Dashboard from './components/Dashboard';
+import GroupStage from './components/GroupStage';
 import { fetchData, updateData } from './services/jsonbin';
 import type { Database } from './types';
 
