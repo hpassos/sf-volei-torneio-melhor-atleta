@@ -12,9 +12,13 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
   const [selectedTeams, setSelectedTeams] = useState<Team[]>([]);
   const [tempScores, setTempScores] = useState<{ [matchId: number]: { dupla1: number; dupla2: number } }>({});
 
-  // Função para adicionar uma dupla ao grupo
-  const addTeamToGroup = (team: Team) => {
-    if (!selectedTeams.includes(team)) {
+  // Função para adicionar ou remover uma dupla do grupo
+  const toggleTeamSelection = (team: Team) => {
+    if (selectedTeams.includes(team)) {
+      // Remove a dupla se já estiver selecionada
+      setSelectedTeams(selectedTeams.filter((t) => t !== team));
+    } else {
+      // Adiciona a dupla se não estiver selecionada
       setSelectedTeams([...selectedTeams, team]);
     }
   };
@@ -78,7 +82,10 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
       if (tempScores[match.id]) {
         return {
           ...match,
-          placar: tempScores[match.id],
+          placar: {
+            ...match.placar, // Mantém o placar existente
+            ...tempScores[match.id], // Atualiza apenas os campos alterados
+          },
         };
       }
       return match;
@@ -99,7 +106,7 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
           {teams.map((team) => (
             <div
               key={team.id}
-              onClick={() => addTeamToGroup(team)}
+              onClick={() => toggleTeamSelection(team)}
               className={`p-4 rounded-md cursor-pointer ${
                 selectedTeams.includes(team)
                   ? 'bg-indigo-600 text-white'
@@ -160,7 +167,7 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
               <div className="flex justify-between items-center">
                 <input
                   type="number"
-                  value={tempScores[match.id]?.dupla1 || match.placar.dupla1}
+                  value={tempScores[match.id]?.dupla1 ?? match.placar.dupla1}
                   onChange={(e) =>
                     handleTempScoreChange(match.id, 'dupla1', parseInt(e.target.value))
                   }
@@ -169,7 +176,7 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
                 <span className="font-bold">x</span>
                 <input
                   type="number"
-                  value={tempScores[match.id]?.dupla2 || match.placar.dupla2}
+                  value={tempScores[match.id]?.dupla2 ?? match.placar.dupla2}
                   onChange={(e) =>
                     handleTempScoreChange(match.id, 'dupla2', parseInt(e.target.value))
                   }
