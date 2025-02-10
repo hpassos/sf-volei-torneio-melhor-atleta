@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Users, Swords, Vote, BarChart3 } from 'lucide-react';
+import { Trophy, Users, Swords, Vote, BarChart3, LayoutGrid } from 'lucide-react';
 import AthleteRegistration from './components/AthleteRegistration';
 import TeamFormation from './components/TeamFormation';
 import MatchRegistration from './components/MatchRegistration';
@@ -56,6 +56,7 @@ function App() {
     { id: 'teams', label: 'Formação de Duplas', icon: Trophy },
     { id: 'matches', label: 'Cadastro de Confrontos', icon: Swords },
     { id: 'voting', label: 'Votação', icon: Vote },
+    { id: 'groups', label: 'Fase de Grupos', icon: LayoutGrid },
   ];
 
   if (loading) {
@@ -133,6 +134,13 @@ function App() {
               matches={data.confrontos}
               votes={data.votacoes}
               onUpdate={(votes) => handleDataUpdate({ ...data, votacoes: votes })}
+            />
+          )}
+          {activeTab === 'groups' && (
+            <GroupStage
+              teams={data.duplas}
+              matches={data.confrontos}
+              onUpdateMatches={(matches) => handleDataUpdate({ ...data, confrontos: matches })}
             />
           )}
         </div>
