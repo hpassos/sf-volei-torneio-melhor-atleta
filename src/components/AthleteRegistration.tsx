@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
 import type { Athlete } from '../types';
-import { v4 as uuidv4 } from 'uuid';
 
 
 interface Props {
   athletes: Athlete[];
   onUpdate: (athletes: Athlete[]) => void;
 }
+
+const generateId = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback para um ID simples (não é um UUID real)
+  return Math.random().toString(36).substring(2, 9);
+};
 
 export default function AthleteRegistration({ athletes, onUpdate }: Props) {
   const [name, setName] = useState('');
@@ -22,7 +29,7 @@ export default function AthleteRegistration({ athletes, onUpdate }: Props) {
     }
 
     const newAthlete: Athlete = {
-      id: uuidv4(),
+      id: generateId(),
       nome: name.trim(),
     };
 

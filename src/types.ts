@@ -1,5 +1,5 @@
 export interface Athlete {
-  id: number;
+  id: string;
   nome: string;
 }
 
@@ -10,7 +10,7 @@ export interface Team {
 }
 
 export interface Match {
-  id: number;
+  id: string;
   rodada: string;
   dupla1: string;
   dupla2: string;

@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
 import type { Team, Match } from '../types';
-import { v4 as uuidv4 } from 'uuid';
 
 interface Group {
   id: string;
   name: string;
   teams: Team[];
 }
+
+const generateId = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback para um ID simples (não é um UUID real)
+  return Math.random().toString(36).substring(2, 9);
+};
 
 export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -37,7 +44,7 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
   // Criação e Gerenciamento de Grupos
   const createNewGroup = () => {
     const newGroup: Group = {
-      id: uuidv4(),
+      id: generateId(),
       name: `Grupo ${groups.length + 1}`,
       teams: []
     };
@@ -64,7 +71,7 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
 
         if (!matchExists) {
           newMatches.push({
-            id: uuidv4(),
+            id: generateId(),
             rodada: group.name,
             dupla1: `${team1.atleta1} / ${team1.atleta2}`,
             dupla2: `${team2.atleta1} / ${team2.atleta2}`,
