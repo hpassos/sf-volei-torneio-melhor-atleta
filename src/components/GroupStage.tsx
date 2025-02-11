@@ -60,7 +60,7 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
         const matchExists = matches.some(match =>
         (match.dupla1 === `${team1.atleta1} / ${team1.atleta2}` &&
           match.dupla2 === `${team2.atleta1} / ${team2.atleta2}`
-        );
+        ));
 
         if (!matchExists) {
           newMatches.push({
