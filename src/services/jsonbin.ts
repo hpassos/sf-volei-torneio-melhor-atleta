@@ -19,7 +19,7 @@ export async function fetchData(): Promise<Database> {
     return response.data.record;
   } catch (error) {
     console.error('Error fetching data:', error);
-    throw error;
+    throw new Error(`Failed to fetch data: ${error.message}`);
   }
 }
 
@@ -28,6 +28,6 @@ export async function updateData(data: Database): Promise<void> {
     await api.put(`/${BIN_ID}`, data);
   } catch (error) {
     console.error('Error updating data:', error);
-    throw error;
+    throw new Error(`Failed to update data: ${error.message}`);
   }
 }

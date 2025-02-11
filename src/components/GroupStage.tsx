@@ -67,13 +67,13 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
 
   // Função para atualizar os placares temporariamente
   const handleTempScoreChange = (matchId: number, field: 'dupla1' | 'dupla2', value: number) => {
-    setTempScores({
-      ...tempScores,
+    setTempScores(prev => ({
+      ...prev,
       [matchId]: {
-        ...tempScores[matchId],
+        ...prev[matchId],
         [field]: value,
       },
-    });
+    }));
   };
 
   // Função para salvar os placares
@@ -107,11 +107,10 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
             <div
               key={team.id}
               onClick={() => toggleTeamSelection(team)}
-              className={`p-4 rounded-md cursor-pointer ${
-                selectedTeams.includes(team)
+              className={`p-4 rounded-md cursor-pointer ${selectedTeams.includes(team)
                   ? 'bg-indigo-600 text-white'
                   : 'bg-gray-100 hover:bg-gray-200'
-              }`}
+                }`}
             >
               <p>{team.atleta1} / {team.atleta2}</p>
             </div>

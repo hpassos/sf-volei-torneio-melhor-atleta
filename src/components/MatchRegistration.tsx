@@ -18,6 +18,16 @@ export default function MatchRegistration({ teams, matches, onUpdate }: Props) {
     e.preventDefault();
     if (!round || !team1 || !team2 || !score1 || !score2) return;
 
+    const isDuplicate = matches.some(match =>
+      (match.dupla1 === team1 && match.dupla2 === team2) ||
+      (match.dupla1 === team2 && match.dupla2 === team1)
+    );
+
+    if (isDuplicate) {
+      alert('Confronto já cadastrado!');
+      return;
+    }
+
     const newMatch: Match = {
       id: matches.length + 1,
       rodada: round,

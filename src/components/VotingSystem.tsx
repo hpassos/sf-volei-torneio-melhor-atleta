@@ -87,8 +87,8 @@ export default function VotingSystem({ athletes, matches, votes, onUpdate }: Pro
               {athletes
                 .filter((athlete) => athlete.nome !== voter)
                 .map((athlete) => (
-                  <option key={athlete.id} value={athlete.nome}>
-                    {athlete.nome}
+                  <option key={athlete.id} value={athlete.nome} disabled={athlete.nome === voter}>
+                    {athlete.nome} {athlete.nome === voter ? '(Você)' : ''}
                   </option>
                 ))}
             </select>

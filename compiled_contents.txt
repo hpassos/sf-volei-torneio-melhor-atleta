@@ -1,0 +1,1092 @@
+=== ./src\App.tsx ===
+import React, { useState, useEffect } from 'react';
+import { Trophy, Users, Swords, Vote, BarChart3, LayoutGrid } from 'lucide-react';
+import AthleteRegistration from './components/AthleteRegistration';
+import TeamFormation from './components/TeamFormation';
+import MatchRegistration from './components/MatchRegistration';
+import VotingSystem from './components/VotingSystem';
+import Dashboard from './components/Dashboard';
+import GroupStage from './components/GroupStage';
+import { fetchData, updateData } from './services/jsonbin';
+import type { Database } from './types';
+
+const initialData: Database = {
+  atletas: [],
+  duplas: [],
+  confrontos: [],
+  votacoes: {},
+};
+
+function App() {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [data, setData] = useState<Database>(initialData);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const fetchedData = await fetchData();
+      setData(fetchedData);
+      setError(null);
+    } catch (err) {
+      setError('Erro ao carregar dados. Por favor, tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDataUpdate = async (newData: Database) => {
+    try {
+      setLoading(true);
+      await updateData(newData);
+      setData(newData);
+      setError(null);
+    } catch (err) {
+      setError('Erro ao salvar dados. Por favor, tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const tabs = [
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'athletes', label: 'Cadastro de Atletas', icon: Users },
+    { id: 'teams', label: 'Formação de Duplas', icon: Trophy },
+    { id: 'matches', label: 'Cadastro de Confrontos', icon: Swords },
+    { id: 'voting', label: 'Votação', icon: Vote },
+    { id: 'groups', label: 'Fase de Grupos', icon: LayoutGrid },
+  ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-indigo-600 text-white py-6 shadow-lg">
+        <div className="container mx-auto px-4">
+          <h1 className="text-3xl font-bold">Sistema de Votação Entre Atletas</h1>
+        </div>
+      </header>
+
+      <nav className="bg-white shadow-md">
+        <div className="container mx-auto px-4">
+          <div className="flex space-x-1">
+            {tabs.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`flex items-center space-x-2 px-4 py-3 font-medium transition-colors ${
+                  activeTab === id
+                    ? 'border-b-2 border-indigo-600 text-indigo-600'
+                    : 'text-gray-600 hover:text-indigo-600'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      <main className="container mx-auto px-4 py-8">
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">
+            {error}
+          </div>
+        )}
+
+        <div className="bg-white rounded-lg shadow-md p-6">
+          {activeTab === 'dashboard' && <Dashboard data={data} />}
+          {activeTab === 'athletes' && (
+            <AthleteRegistration
+              athletes={data.atletas}
+              onUpdate={(athletes) => handleDataUpdate({ ...data, atletas: athletes })}
+            />
+          )}
+          {activeTab === 'teams' && (
+            <TeamFormation
+              athletes={data.atletas}
+              teams={data.duplas}
+              onUpdate={(teams) => handleDataUpdate({ ...data, duplas: teams })}
+            />
+          )}
+          {activeTab === 'matches' && (
+            <MatchRegistration
+              teams={data.duplas}
+              matches={data.confrontos}
+              onUpdate={(matches) => handleDataUpdate({ ...data, confrontos: matches })}
+            />
+          )}
+          {activeTab === 'voting' && (
+            <VotingSystem
+              athletes={data.atletas}
+              matches={data.confrontos}
+              votes={data.votacoes}
+              onUpdate={(votes) => handleDataUpdate({ ...data, votacoes: votes })}
+            />
+          )}
+          {activeTab === 'groups' && (
+            <GroupStage
+              teams={data.duplas}
+              matches={data.confrontos}
+              onUpdateMatches={(matches) => handleDataUpdate({ ...data, confrontos: matches })}
+            />
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default App;
+
+
+=== ./src\index.css ===
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+=== ./src\main.tsx ===
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App.tsx';
+import './index.css';
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
+
+
+=== ./src\types.ts ===
+export interface Athlete {
+  id: number;
+  nome: string;
+}
+
+export interface Team {
+  id: number;
+  atleta1: string;
+  atleta2: string;
+}
+
+export interface Match {
+  id: number;
+  rodada: string;
+  dupla1: string;
+  dupla2: string;
+  placar: {
+    dupla1: number;
+    dupla2: number;
+  };
+}
+
+export interface Vote {
+  votante: string;
+  voto: string;
+}
+
+export interface RoundVotes {
+  [key: string]: Vote[];
+}
+
+export interface Database {
+  atletas: Athlete[];
+  duplas: Team[];
+  confrontos: Match[];
+  votacoes: RoundVotes;
+}
+
+=== ./src\vite-env.d.ts ===
+/// <reference types="vite/client" />
+
+
+=== ./src\components\AthleteRegistration.tsx ===
+import React, { useState } from 'react';
+import type { Athlete } from '../types';
+import { v4 as uuidv4 } from 'uuid';
+
+
+interface Props {
+  athletes: Athlete[];
+  onUpdate: (athletes: Athlete[]) => void;
+}
+
+export default function AthleteRegistration({ athletes, onUpdate }: Props) {
+  const [name, setName] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    const isDuplicate = athletes.some(athlete => athlete.nome === name.trim());
+    if (isDuplicate) {
+      alert('Atleta já cadastrado!');
+      return;
+    }
+
+    const newAthlete: Athlete = {
+      id: uuidv4(),
+      nome: name.trim(),
+    };
+
+    onUpdate([...athletes, newAthlete]);
+    setName('');
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-6">Cadastro de Atletas</h2>
+
+      <form onSubmit={handleSubmit} className="mb-8">
+        <div className="flex gap-4">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nome do atleta"
+            className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          />
+          <button
+            type="submit"
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          >
+            Adicionar Atleta
+          </button>
+        </div>
+      </form>
+
+      <div className="bg-gray-50 rounded-lg p-4">
+        <h3 className="text-lg font-semibold mb-4">Atletas Cadastrados</h3>
+        {athletes.length === 0 ? (
+          <p className="text-gray-500">Nenhum atleta cadastrado</p>
+        ) : (
+          <ul className="space-y-2">
+            {athletes.map((athlete) => (
+              <li
+                key={athlete.id}
+                className="flex items-center justify-between bg-white p-3 rounded-md shadow-sm"
+              >
+                <span>{athlete.nome}</span>
+                <span className="text-gray-500">#{athlete.id}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+=== ./src\components\Dashboard.tsx ===
+import React, { useMemo } from 'react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
+import type { Database } from '../types';
+
+interface Props {
+  data: Database;
+}
+
+const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+
+export default function Dashboard({ data }: Props) {
+  const voteStats = useMemo(() => {
+    const stats: Record<string, number> = {};
+    
+    Object.values(data.votacoes).forEach(roundVotes => {
+      roundVotes.forEach(vote => {
+        stats[vote.voto] = (stats[vote.voto] || 0) + 1;
+      });
+    });
+
+    return Object.entries(stats).map(([name, votes]) => ({
+      name,
+      votes,
+    }));
+  }, [data.votacoes]);
+
+  const matchStats = useMemo(() => {
+    const stats: Record<string, { wins: number; totalGames: number }> = {};
+
+    data.confrontos.forEach(match => {
+      const winner = match.placar.dupla1 > match.placar.dupla2 ? match.dupla1 : match.dupla2;
+      const teams = [match.dupla1, match.dupla2];
+
+      teams.forEach(team => {
+        if (!stats[team]) {
+          stats[team] = { wins: 0, totalGames: 0 };
+        }
+        stats[team].totalGames++;
+        if (team === winner) {
+          stats[team].wins++;
+        }
+      });
+    });
+
+    return Object.entries(stats).map(([team, { wins, totalGames }]) => ({
+      team,
+      winRate: (wins / totalGames) * 100,
+    }));
+  }, [data.confrontos]);
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-6">Dashboard</h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h3 className="text-lg font-semibold mb-4">Votos por Atleta</h3>
+          <div className="flex justify-center">
+            <PieChart width={400} height={300}>
+              <Pie
+                data={voteStats}
+                dataKey="votes"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                label
+              >
+                {voteStats.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h3 className="text-lg font-semibold mb-4">Taxa de Vitória por Dupla</h3>
+          <div className="flex justify-center">
+            <BarChart width={400} height={300} data={matchStats}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="team" angle={-45} textAnchor="end" height={100} />
+              <YAxis label={{ value: 'Taxa de Vitória (%)', angle: -90, position: 'insideLeft' }} />
+              <Tooltip />
+              <Bar dataKey="winRate" fill="#4F46E5" />
+            </BarChart>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-md md:col-span-2">
+          <h3 className="text-lg font-semibold mb-4">Estatísticas Gerais</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-indigo-50 p-4 rounded-lg">
+              <p className="text-sm text-indigo-600 mb-1">Total de Atletas</p>
+              <p className="text-2xl font-bold text-indigo-900">{data.atletas.length}</p>
+            </div>
+            <div className="bg-emerald-50 p-4 rounded-lg">
+              <p className="text-sm text-emerald-600 mb-1">Total de Duplas</p>
+              <p className="text-2xl font-bold text-emerald-900">{data.duplas.length}</p>
+            </div>
+            <div className="bg-amber-50 p-4 rounded-lg">
+              <p className="text-sm text-amber-600 mb-1">Partidas Realizadas</p>
+              <p className="text-2xl font-bold text-amber-900">{data.confrontos.length}</p>
+            </div>
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <p className="text-sm text-purple-600 mb-1">Total de Votos</p>
+              <p className="text-2xl font-bold text-purple-900">
+                {Object.values(data.votacoes).reduce((acc, curr) => acc + curr.length, 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+=== ./src\components\GroupStage.tsx ===
+import React, { useState } from 'react';
+import type { Team, Match } from '../types';
+
+interface Props {
+  teams: Team[];
+  matches: Match[];
+  onUpdateMatches: (matches: Match[]) => void;
+}
+
+export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
+  const [groups, setGroups] = useState<Team[][]>([]);
+  const [selectedTeams, setSelectedTeams] = useState<Team[]>([]);
+  const [tempScores, setTempScores] = useState<{ [matchId: number]: { dupla1: number; dupla2: number } }>({});
+
+  // Função para adicionar ou remover uma dupla do grupo
+  const toggleTeamSelection = (team: Team) => {
+    if (selectedTeams.includes(team)) {
+      // Remove a dupla se já estiver selecionada
+      setSelectedTeams(selectedTeams.filter((t) => t !== team));
+    } else {
+      // Adiciona a dupla se não estiver selecionada
+      setSelectedTeams([...selectedTeams, team]);
+    }
+  };
+
+  // Função para criar um grupo com as duplas selecionadas
+  const createGroup = () => {
+    if (selectedTeams.length > 0) {
+      setGroups([...groups, selectedTeams]);
+      setSelectedTeams([]); // Limpa a seleção após criar o grupo
+    }
+  };
+
+  // Função para criar confrontos dentro de um grupo
+  const createMatchesInGroup = (group: Team[]) => {
+    const newMatches: Match[] = [];
+
+    for (let i = 0; i < group.length; i++) {
+      for (let j = i + 1; j < group.length; j++) {
+        const team1 = group[i];
+        const team2 = group[j];
+
+        const matchExists = matches.some(
+          (match) =>
+            (match.dupla1 === `${team1.atleta1} / ${team1.atleta2}` &&
+              match.dupla2 === `${team2.atleta1} / ${team2.atleta2}`) ||
+            (match.dupla1 === `${team2.atleta1} / ${team2.atleta2}` &&
+              match.dupla2 === `${team1.atleta1} / ${team1.atleta2}`)
+        );
+
+        if (!matchExists) {
+          newMatches.push({
+            id: matches.length + newMatches.length + 1,
+            rodada: `Grupo ${groups.length + 1}`,
+            dupla1: `${team1.atleta1} / ${team1.atleta2}`,
+            dupla2: `${team2.atleta1} / ${team2.atleta2}`,
+            placar: { dupla1: 0, dupla2: 0 },
+          });
+        }
+      }
+    }
+
+    if (newMatches.length > 0) {
+      onUpdateMatches([...matches, ...newMatches]);
+    }
+  };
+
+  // Função para atualizar os placares temporariamente
+  const handleTempScoreChange = (matchId: number, field: 'dupla1' | 'dupla2', value: number) => {
+    setTempScores(prev => ({
+      ...prev,
+      [matchId]: {
+        ...prev[matchId],
+        [field]: value,
+      },
+    }));
+  };
+
+  // Função para salvar os placares
+  const saveScores = () => {
+    const updatedMatches = matches.map((match) => {
+      if (tempScores[match.id]) {
+        return {
+          ...match,
+          placar: {
+            ...match.placar, // Mantém o placar existente
+            ...tempScores[match.id], // Atualiza apenas os campos alterados
+          },
+        };
+      }
+      return match;
+    });
+
+    onUpdateMatches(updatedMatches);
+    setTempScores({}); // Limpa os placares temporários
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-6">Fase de Grupos e Confrontos</h2>
+
+      {/* Seleção de Duplas para o Grupo */}
+      <div className="mb-8">
+        <h3 className="text-xl font-semibold mb-4">Selecionar Duplas para o Grupo</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {teams.map((team) => (
+            <div
+              key={team.id}
+              onClick={() => toggleTeamSelection(team)}
+              className={`p-4 rounded-md cursor-pointer ${selectedTeams.includes(team)
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+            >
+              <p>{team.atleta1} / {team.atleta2}</p>
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={createGroup}
+          className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+        >
+          Criar Grupo com Duplas Selecionadas
+        </button>
+      </div>
+
+      {/* Grupos Criados */}
+      {groups.length > 0 && (
+        <div className="space-y-8">
+          {groups.map((group, groupIndex) => (
+            <div key={groupIndex} className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold mb-4">Grupo {groupIndex + 1}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {group.map((team) => (
+                  <div
+                    key={team.id}
+                    className="p-4 bg-gray-50 rounded-md shadow-sm"
+                  >
+                    <p className="font-medium">{team.atleta1} / {team.atleta2}</p>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => createMatchesInGroup(group)}
+                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+              >
+                Criar Confrontos no Grupo {groupIndex + 1}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Confrontos e Placar */}
+      {matches.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-xl font-semibold mb-4">Confrontos</h3>
+          {matches.map((match) => (
+            <div key={match.id} className="mb-4 p-4 bg-gray-50 rounded-md shadow-sm">
+              <div className="flex justify-between items-center mb-2">
+                <span>{match.dupla1}</span>
+                <span className="font-bold">x</span>
+                <span>{match.dupla2}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <input
+                  type="number"
+                  value={tempScores[match.id]?.dupla1 ?? match.placar.dupla1}
+                  onChange={(e) =>
+                    handleTempScoreChange(match.id, 'dupla1', parseInt(e.target.value))
+                  }
+                  className="w-16 px-2 py-1 border rounded-md"
+                />
+                <span className="font-bold">x</span>
+                <input
+                  type="number"
+                  value={tempScores[match.id]?.dupla2 ?? match.placar.dupla2}
+                  onChange={(e) =>
+                    handleTempScoreChange(match.id, 'dupla2', parseInt(e.target.value))
+                  }
+                  className="w-16 px-2 py-1 border rounded-md"
+                />
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={saveScores}
+            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          >
+            Atualizar Placar
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+=== ./src\components\MatchRegistration.tsx ===
+import React, { useState } from 'react';
+import type { Team, Match } from '../types';
+
+interface Props {
+  teams: Team[];
+  matches: Match[];
+  onUpdate: (matches: Match[]) => void;
+}
+
+export default function MatchRegistration({ teams, matches, onUpdate }: Props) {
+  const [round, setRound] = useState('');
+  const [team1, setTeam1] = useState('');
+  const [team2, setTeam2] = useState('');
+  const [score1, setScore1] = useState('');
+  const [score2, setScore2] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!round || !team1 || !team2 || !score1 || !score2) return;
+
+    const isDuplicate = matches.some(match =>
+      (match.dupla1 === team1 && match.dupla2 === team2) ||
+      (match.dupla1 === team2 && match.dupla2 === team1)
+    );
+
+    if (isDuplicate) {
+      alert('Confronto já cadastrado!');
+      return;
+    }
+
+    const newMatch: Match = {
+      id: matches.length + 1,
+      rodada: round,
+      dupla1: team1,
+      dupla2: team2,
+      placar: {
+        dupla1: parseInt(score1),
+        dupla2: parseInt(score2),
+      },
+    };
+
+    onUpdate([...matches, newMatch]);
+    setRound('');
+    setTeam1('');
+    setTeam2('');
+    setScore1('');
+    setScore2('');
+  };
+
+  const formatTeamName = (team: Team) => `${team.atleta1} / ${team.atleta2}`;
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-6">Cadastro de Confrontos</h2>
+
+      <form onSubmit={handleSubmit} className="mb-8">
+        <div className="grid grid-cols-1 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Rodada
+            </label>
+            <input
+              type="text"
+              value={round}
+              onChange={(e) => setRound(e.target.value)}
+              placeholder="Ex: Rodada 1"
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Dupla 1
+              </label>
+              <select
+                value={team1}
+                onChange={(e) => setTeam1(e.target.value)}
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              >
+                <option value="">Selecione uma dupla</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={formatTeamName(team)}>
+                    {formatTeamName(team)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Dupla 2
+              </label>
+              <select
+                value={team2}
+                onChange={(e) => setTeam2(e.target.value)}
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              >
+                <option value="">Selecione uma dupla</option>
+                {teams
+                  .filter((team) => formatTeamName(team) !== team1)
+                  .map((team) => (
+                    <option key={team.id} value={formatTeamName(team)}>
+                      {formatTeamName(team)}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Placar Dupla 1
+              </label>
+              <input
+                type="number"
+                value={score1}
+                onChange={(e) => setScore1(e.target.value)}
+                min="0"
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Placar Dupla 2
+              </label>
+              <input
+                type="number"
+                value={score2}
+                onChange={(e) => setScore2(e.target.value)}
+                min="0"
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          className="mt-4 w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        >
+          Registrar Confronto
+        </button>
+      </form>
+
+      <div className="bg-gray-50 rounded-lg p-4">
+        <h3 className="text-lg font-semibold mb-4">Confrontos Registrados</h3>
+        {matches.length === 0 ? (
+          <p className="text-gray-500">Nenhum confronto registrado</p>
+        ) : (
+          <ul className="space-y-2">
+            {matches.map((match) => (
+              <li
+                key={match.id}
+                className="bg-white p-3 rounded-md shadow-sm"
+              >
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">{match.rodada}</span>
+                  <span className="text-gray-500">#{match.id}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>{match.dupla1}</span>
+                  <span className="font-bold">
+                    {match.placar.dupla1} x {match.placar.dupla2}
+                  </span>
+                  <span>{match.dupla2}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+=== ./src\components\TeamFormation.tsx ===
+import React, { useState } from 'react';
+import type { Athlete, Team } from '../types';
+
+interface Props {
+  athletes: Athlete[];
+  teams: Team[];
+  onUpdate: (teams: Team[]) => void;
+}
+
+export default function TeamFormation({ athletes, teams, onUpdate }: Props) {
+  const [athlete1, setAthlete1] = useState('');
+  const [athlete2, setAthlete2] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!athlete1 || !athlete2) return;
+
+    const isDuplicate = teams.some(team =>
+      (team.atleta1 === athlete1 && team.atleta2 === athlete2) ||
+      (team.atleta1 === athlete2 && team.atleta2 === athlete1)
+    );
+
+    if (isDuplicate) {
+      alert('Dupla já cadastrada!');
+      return;
+    }
+
+    const newTeam: Team = {
+      id: teams.length + 1,
+      atleta1: athlete1,
+      atleta2: athlete2,
+    };
+
+    onUpdate([...teams, newTeam]);
+    setAthlete1('');
+    setAthlete2('');
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-6">Formação de Duplas</h2>
+
+      <form onSubmit={handleSubmit} className="mb-8">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Atleta 1
+            </label>
+            <select
+              value={athlete1}
+              onChange={(e) => setAthlete1(e.target.value)}
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            >
+              <option value="">Selecione um atleta</option>
+              {athletes.map((athlete) => (
+                <option key={athlete.id} value={athlete.nome}>
+                  {athlete.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Atleta 2
+            </label>
+            <select
+              value={athlete2}
+              onChange={(e) => setAthlete2(e.target.value)}
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            >
+              <option value="">Selecione um atleta</option>
+              {athletes
+                .filter((athlete) => athlete.nome !== athlete1)
+                .map((athlete) => (
+                  <option key={athlete.id} value={athlete.nome}>
+                    {athlete.nome}
+                  </option>
+                ))}
+            </select>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          className="mt-4 w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        >
+          Formar Dupla
+        </button>
+      </form>
+
+      <div className="bg-gray-50 rounded-lg p-4">
+        <h3 className="text-lg font-semibold mb-4">Duplas Formadas</h3>
+        {teams.length === 0 ? (
+          <p className="text-gray-500">Nenhuma dupla formada</p>
+        ) : (
+          <ul className="space-y-2">
+            {teams.map((team) => (
+              <li
+                key={team.id}
+                className="flex items-center justify-between bg-white p-3 rounded-md shadow-sm"
+              >
+                <span>
+                  {team.atleta1} / {team.atleta2}
+                </span>
+                <span className="text-gray-500">Dupla #{team.id}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+=== ./src\components\VotingSystem.tsx ===
+import React, { useState } from 'react';
+import type { Athlete, Match, RoundVotes } from '../types';
+
+interface Props {
+  athletes: Athlete[];
+  matches: Match[];
+  votes: RoundVotes;
+  onUpdate: (votes: RoundVotes) => void;
+}
+
+export default function VotingSystem({ athletes, matches, votes, onUpdate }: Props) {
+  const [selectedRound, setSelectedRound] = useState('');
+  const [voter, setVoter] = useState('');
+  const [votedFor, setVotedFor] = useState('');
+
+  const rounds = [...new Set(matches.map((match) => match.rodada))];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRound || !voter || !votedFor) return;
+
+    const roundKey = selectedRound.toLowerCase().replace(/\s+/g, '-');
+    const roundVotes = votes[roundKey] || [];
+    const newVote = { votante: voter, voto: votedFor };
+
+    onUpdate({
+      ...votes,
+      [roundKey]: [...roundVotes, newVote],
+    });
+
+    setVoter('');
+    setVotedFor('');
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-6">Sistema de Votação</h2>
+
+      <form onSubmit={handleSubmit} className="mb-8">
+        <div className="grid grid-cols-1 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Rodada
+            </label>
+            <select
+              value={selectedRound}
+              onChange={(e) => setSelectedRound(e.target.value)}
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            >
+              <option value="">Selecione uma rodada</option>
+              {rounds.map((round) => (
+                <option key={round} value={round}>
+                  {round}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Votante
+            </label>
+            <select
+              value={voter}
+              onChange={(e) => setVoter(e.target.value)}
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            >
+              <option value="">Selecione o votante</option>
+              {athletes.map((athlete) => (
+                <option key={athlete.id} value={athlete.nome}>
+                  {athlete.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Voto para Melhor Atleta
+            </label>
+            <select
+              value={votedFor}
+              onChange={(e) => setVotedFor(e.target.value)}
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            >
+              <option value="">Selecione o atleta</option>
+              {athletes
+                .filter((athlete) => athlete.nome !== voter)
+                .map((athlete) => (
+                  <option key={athlete.id} value={athlete.nome} disabled={athlete.nome === voter}>
+                    {athlete.nome} {athlete.nome === voter ? '(Você)' : ''}
+                  </option>
+                ))}
+            </select>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          className="mt-4 w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        >
+          Registrar Voto
+        </button>
+      </form>
+
+      <div className="bg-gray-50 rounded-lg p-4">
+        <h3 className="text-lg font-semibold mb-4">Votos Registrados</h3>
+        {Object.keys(votes).length === 0 ? (
+          <p className="text-gray-500">Nenhum voto registrado</p>
+        ) : (
+          <div className="space-y-6">
+            {Object.entries(votes).map(([round, roundVotes]) => (
+              <div key={round} className="bg-white p-4 rounded-md shadow-sm">
+                <h4 className="font-medium mb-3">{round.replace(/-/g, ' ')}</h4>
+                <ul className="space-y-2">
+                  {roundVotes.map((vote, index) => (
+                    <li
+                      key={`${round}-${index}`}
+                      className="flex justify-between items-center text-sm"
+                    >
+                      <span className="text-gray-600">{vote.votante}</span>
+                      <span className="font-medium">votou em</span>
+                      <span className="text-indigo-600">{vote.voto}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+=== ./src\services\jsonbin.ts ===
+import axios from 'axios';
+import type { Database } from '../types';
+
+const JSONBIN_API_KEY = '$2a$10$2EXYkBLG9hlyY8HZN7ABKOVwtBKpIsi86FZ72iU8.AJ4SFD92D3Wy'; // Replace with your JSONBin.io API key
+const BIN_ID = '67a12c15e41b4d34e4838ee6'; // Replace with your bin ID
+const BASE_URL = 'https://api.jsonbin.io/v3/b';
+
+const api = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    'X-Master-Key': JSONBIN_API_KEY,
+    'Content-Type': 'application/json',
+  },
+});
+
+export async function fetchData(): Promise<Database> {
+  try {
+    const response = await api.get(`/${BIN_ID}/latest`);
+    return response.data.record;
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    throw new Error(`Failed to fetch data: ${error.message}`);
+  }
+}
+
+export async function updateData(data: Database): Promise<void> {
+  try {
+    await api.put(`/${BIN_ID}`, data);
+  } catch (error) {
+    console.error('Error updating data:', error);
+    throw new Error(`Failed to update data: ${error.message}`);
+  }
+}
+

@@ -15,6 +15,16 @@ export default function TeamFormation({ athletes, teams, onUpdate }: Props) {
     e.preventDefault();
     if (!athlete1 || !athlete2) return;
 
+    const isDuplicate = teams.some(team =>
+      (team.atleta1 === athlete1 && team.atleta2 === athlete2) ||
+      (team.atleta1 === athlete2 && team.atleta2 === athlete1)
+    );
+
+    if (isDuplicate) {
+      alert('Dupla já cadastrada!');
+      return;
+    }
+
     const newTeam: Team = {
       id: teams.length + 1,
       atleta1: athlete1,

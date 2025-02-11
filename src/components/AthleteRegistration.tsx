@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import type { Athlete } from '../types';
+import { v4 as uuidv4 } from 'uuid';
+
 
 interface Props {
   athletes: Athlete[];
@@ -13,8 +15,14 @@ export default function AthleteRegistration({ athletes, onUpdate }: Props) {
     e.preventDefault();
     if (!name.trim()) return;
 
+    const isDuplicate = athletes.some(athlete => athlete.nome === name.trim());
+    if (isDuplicate) {
+      alert('Atleta já cadastrado!');
+      return;
+    }
+
     const newAthlete: Athlete = {
-      id: athletes.length + 1,
+      id: uuidv4(),
       nome: name.trim(),
     };
 
@@ -25,7 +33,7 @@ export default function AthleteRegistration({ athletes, onUpdate }: Props) {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6">Cadastro de Atletas</h2>
-      
+
       <form onSubmit={handleSubmit} className="mb-8">
         <div className="flex gap-4">
           <input
