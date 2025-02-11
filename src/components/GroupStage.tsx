@@ -2,12 +2,6 @@ import React, { useState } from 'react';
 import type { Team, Match } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
-interface Props {
-  teams: Team[];
-  matches: Match[];
-  onUpdateMatches: (matches: Match[]) => void;
-}
-
 interface Group {
   id: string;
   name: string;
@@ -16,52 +10,46 @@ interface Group {
 
 export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
   const [groups, setGroups] = useState<Group[]>([]);
-  const [selectedTeams, setSelectedTeams] = useState<Team[]>([]);
-  const [tempScores, setTempScores] = useState<{ [matchId: string]: { dupla1: number; dupla2: number } }>({});
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [tempScore, setTempScore] = useState({ dupla1: 0, dupla2: 0 });
+  const [draggedTeam, setDraggedTeam] = useState<Team | null>(null);
 
-  // Função para adicionar ou remover uma dupla do grupo
-  const toggleTeamSelection = (team: Team) => {
-    if (selectedTeams.includes(team)) {
-      setSelectedTeams(selectedTeams.filter((t) => t !== team));
-    } else {
-      setSelectedTeams([...selectedTeams, team]);
+  // Funções de Drag and Drop
+  const handleDragStart = (e: React.DragEvent, team: Team) => {
+    setDraggedTeam(team);
+    e.dataTransfer.setData('text/plain', team.id);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, groupIndex: number) => {
+    e.preventDefault();
+    if (draggedTeam) {
+      const updatedGroups = [...groups];
+      updatedGroups[groupIndex].teams.push(draggedTeam);
+      setGroups(updatedGroups);
+      setDraggedTeam(null);
     }
   };
 
-  // Função para criar um grupo com as duplas selecionadas
-  const createGroup = () => {
-    if (selectedTeams.length < 2) {
-      alert('Selecione pelo menos 2 duplas para formar um grupo!');
-      return;
-    }
-
-    const existingTeams = groups.flatMap(g => g.teams);
-    const hasDuplicates = selectedTeams.some(team =>
-      existingTeams.some(t => t.id === team.id)
-    );
-
-    if (hasDuplicates) {
-      alert('Uma ou mais duplas já estão em outro grupo!');
-      return;
-    }
-
+  // Criação e Gerenciamento de Grupos
+  const createNewGroup = () => {
     const newGroup: Group = {
       id: uuidv4(),
       name: `Grupo ${groups.length + 1}`,
-      teams: selectedTeams
+      teams: []
     };
-
     setGroups([...groups, newGroup]);
-    setSelectedTeams([]);
   };
 
-  // Função para deletar um grupo
   const deleteGroup = (groupId: string) => {
     setGroups(groups.filter(group => group.id !== groupId));
   };
 
-  // Função para criar confrontos dentro de um grupo
-  const createMatchesInGroup = (group: Group) => {
+  // Geração de Confrontos
+  const generateMatches = (group: Group) => {
     const newMatches: Match[] = [];
 
     for (let i = 0; i < group.teams.length; i++) {
@@ -69,21 +57,18 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
         const team1 = group.teams[i];
         const team2 = group.teams[j];
 
-        const team1Str = `${team1.atleta1} / ${team1.atleta2}`;
-        const team2Str = `${team2.atleta1} / ${team2.atleta2}`;
-
         const matchExists = matches.some(match =>
-          (match.dupla1 === team1Str && match.dupla2 === team2Str && match.rodada === group.name) ||
-          (match.dupla1 === team2Str && match.dupla2 === team1Str && match.rodada === group.name)
+        (match.dupla1 === `${team1.atleta1} / ${team1.atleta2}` &&
+          match.dupla2 === `${team2.atleta1} / ${team2.atleta2}`
         );
 
         if (!matchExists) {
           newMatches.push({
             id: uuidv4(),
             rodada: group.name,
-            dupla1: team1Str,
-            dupla2: team2Str,
-            placar: { dupla1: 0, dupla2: 0 },
+            dupla1: `${team1.atleta1} / ${team1.atleta2}`,
+            dupla2: `${team2.atleta1} / ${team2.atleta2}`,
+            placar: { dupla1: 0, dupla2: 0 }
           });
         }
       }
@@ -94,7 +79,36 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
     }
   };
 
-  // Função para calcular a classificação do grupo
+  // Controle de Placar
+  const selectMatch = (match: Match) => {
+    setSelectedMatch(match);
+    setTempScore({
+      dupla1: match.placar.dupla1,
+      dupla2: match.placar.dupla2
+    });
+  };
+
+  const handleScoreChange = (field: 'dupla1' | 'dupla2', value: string) => {
+    setTempScore(prev => ({
+      ...prev,
+      [field]: parseInt(value) || 0
+    }));
+  };
+
+  const saveScore = () => {
+    if (selectedMatch) {
+      const updatedMatches = matches.map(match =>
+        match.id === selectedMatch.id ? {
+          ...match,
+          placar: tempScore
+        } : match
+      );
+      onUpdateMatches(updatedMatches);
+      setSelectedMatch(null);
+    }
+  };
+
+  // Cálculo de Classificação
   const calculateStandings = (group: Group) => {
     const standings: { [key: string]: { points: number; wins: number } } = {};
 
@@ -123,170 +137,179 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
       .map(([team, { points, wins }]) => ({ team, points, wins }));
   };
 
-  // Função para atualizar os placares temporariamente
-  const handleTempScoreChange = (matchId: string, field: 'dupla1' | 'dupla2', value: number) => {
-    setTempScores(prev => ({
-      ...prev,
-      [matchId]: {
-        ...prev[matchId],
-        [field]: value,
-      },
-    }));
-  };
-
-  // Função para salvar os placares
-  const saveScores = () => {
-    const hasNegative = Object.values(tempScores).some(score =>
-      score.dupla1 < 0 || score.dupla2 < 0
-    );
-
-    if (hasNegative) {
-      alert('Placar não pode ser negativo!');
-      return;
-    }
-
-    const updatedMatches = matches.map(match => {
-      if (tempScores[match.id]) {
-        return {
-          ...match,
-          placar: {
-            ...match.placar,
-            ...tempScores[match.id],
-          },
-        };
-      }
-      return match;
-    });
-
-    onUpdateMatches(updatedMatches);
-    setTempScores({});
-  };
-
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">Fase de Grupos e Confrontos</h2>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-6">
 
-      {/* Seleção de Duplas para o Grupo */}
-      <div className="mb-8">
-        <h3 className="text-xl font-semibold mb-4">Selecionar Duplas para o Grupo</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {teams.map(team => {
-            const isGrouped = groups.some(group =>
-              group.teams.some(t => t.id === team.id)
-            );
+      {/* Coluna 1 - Formação de Grupos */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-xl font-bold mb-4">🏗️ Formação de Grupos</h2>
+        <div className="space-y-4">
+          <div className="bg-gray-50 p-4 rounded-md">
+            <h3 className="font-medium mb-2">Duplas Disponíveis</h3>
+            <div className="grid grid-cols-1 gap-2">
+              {teams.map(team => (
+                <div
+                  key={team.id}
+                  className="p-2 border rounded-md cursor-move hover:bg-indigo-50"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, team)}
+                >
+                  {team.atleta1} / {team.atleta2}
+                </div>
+              ))}
+            </div>
+          </div>
 
-            return (
+          <div className="bg-gray-50 p-4 rounded-md">
+            <h3 className="font-medium mb-2">Grupos Criados</h3>
+            {groups.map((group, index) => (
               <div
-                key={team.id}
-                onClick={() => !isGrouped && toggleTeamSelection(team)}
-                className={`p-4 rounded-md cursor-pointer ${isGrouped ? 'bg-gray-300 cursor-not-allowed' :
-                  selectedTeams.includes(team) ?
-                    'bg-indigo-600 text-white' :
-                    'bg-gray-100 hover:bg-gray-200'
-                  }`}
+                key={group.id}
+                className="p-4 mb-2 border rounded-md bg-white"
+                onDrop={(e) => handleDrop(e, index)}
+                onDragOver={handleDragOver}
               >
-                <p>{team.atleta1} / {team.atleta2}</p>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">Grupo {index + 1}</span>
+                  <button
+                    onClick={() => deleteGroup(group.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {group.teams.map(team => (
+                  <div
+                    key={team.id}
+                    className="p-1 text-sm border rounded-sm mb-1 bg-gray-50"
+                  >
+                    {team.atleta1} / {team.atleta2}
+                  </div>
+                ))}
               </div>
-            );
-          })}
+            ))}
+            <button
+              onClick={createNewGroup}
+              className="w-full mt-2 py-2 bg-indigo-100 text-indigo-600 rounded-md hover:bg-indigo-200"
+            >
+              + Novo Grupo
+            </button>
+          </div>
         </div>
-        <button
-          onClick={createGroup}
-          className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-        >
-          Criar Grupo com Duplas Selecionadas
-        </button>
       </div>
 
-      {/* Grupos Criados */}
-      {groups.length > 0 && (
-        <div className="space-y-8">
+      {/* Coluna 2 - Confrontos do Grupo */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-xl font-bold mb-4">⚔️ Confrontos Agendados</h2>
+        <div className="space-y-4">
           {groups.map(group => (
-            <div key={group.id} className="bg-white p-6 rounded-lg shadow-md">
+            <div key={group.id} className="border rounded-md p-4">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold">{group.name}</h3>
-                <button
-                  onClick={() => deleteGroup(group.id)}
-                  className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                >
-                  Remover Grupo
-                </button>
+                <h3 className="font-medium">{group.name}</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => generateMatches(group)}
+                    className="px-3 py-1 bg-green-100 text-green-600 rounded-md text-sm"
+                  >
+                    Gerar Confrontos
+                  </button>
+                </div>
               </div>
 
-              {/* Tabela de Classificação */}
-              <div className="mb-6">
-                <h4 className="text-lg font-medium mb-3">Classificação</h4>
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="p-2 text-left">Dupla</th>
-                      <th className="p-2">Pontos</th>
-                      <th className="p-2">Vitórias</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {calculateStandings(group).map((standing, index) => (
-                      <tr key={index} className="border-b">
-                        <td className="p-2">{standing.team}</td>
-                        <td className="p-2 text-center">{standing.points}</td>
-                        <td className="p-2 text-center">{standing.wins}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="grid grid-cols-1 gap-2">
+                {matches
+                  .filter(match => match.rodada === group.name)
+                  .map(match => (
+                    <div
+                      key={match.id}
+                      className={`p-3 rounded-md cursor-pointer ${match.placar.dupla1 + match.placar.dupla2 > 0
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-gray-50 hover:bg-gray-100'}`}
+                      onClick={() => selectMatch(match)}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span>{match.dupla1}</span>
+                        <span className="mx-2">vs</span>
+                        <span>{match.dupla2}</span>
+                      </div>
+                      {match.placar.dupla1 + match.placar.dupla2 > 0 && (
+                        <div className="text-center mt-1 text-sm text-gray-600">
+                          {match.placar.dupla1} - {match.placar.dupla2}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Coluna 3 - Controle de Placar */}
+      {selectedMatch && (
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-bold mb-4">📊 Controle de Partida</h2>
+          <div className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded-md">
+              <h3 className="font-medium mb-4">Placar da Partida</h3>
+              <div className="flex items-center justify-center gap-4">
+                <div className="text-center">
+                  <input
+                    type="number"
+                    value={tempScore.dupla1}
+                    onChange={(e) => handleScoreChange('dupla1', e.target.value)}
+                    className="w-20 text-center text-xl p-2 border rounded-md"
+                    min="0"
+                  />
+                  <div className="mt-2 text-sm text-gray-600">{selectedMatch.dupla1}</div>
+                </div>
+
+                <div className="text-2xl font-bold">x</div>
+
+                <div className="text-center">
+                  <input
+                    type="number"
+                    value={tempScore.dupla2}
+                    onChange={(e) => handleScoreChange('dupla2', e.target.value)}
+                    className="w-20 text-center text-xl p-2 border rounded-md"
+                    min="0"
+                  />
+                  <div className="mt-2 text-sm text-gray-600">{selectedMatch.dupla2}</div>
+                </div>
               </div>
 
               <button
-                onClick={() => createMatchesInGroup(group)}
-                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                onClick={saveScore}
+                className="w-full mt-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
               >
-                Criar Confrontos no {group.name}
+                Salvar Placar
               </button>
             </div>
-          ))}
-        </div>
-      )}
 
-      {/* Confrontos e Placar */}
-      {matches.length > 0 && (
-        <div className="mt-8">
-          <h3 className="text-xl font-semibold mb-4">Confrontos</h3>
-          {matches.map(match => (
-            <div key={match.id} className="mb-4 p-4 bg-gray-50 rounded-md shadow-sm">
-              <div className="flex justify-between items-center mb-2">
-                <span>{match.dupla1}</span>
-                <span className="font-bold">x</span>
-                <span>{match.dupla2}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <input
-                  type="number"
-                  min="0"
-                  value={tempScores[match.id]?.dupla1 ?? match.placar.dupla1}
-                  onChange={(e) =>
-                    handleTempScoreChange(match.id, 'dupla1', parseInt(e.target.value))
-                  }
-                  className="w-16 px-2 py-1 border rounded-md"
-                />
-                <span className="font-bold">x</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={tempScores[match.id]?.dupla2 ?? match.placar.dupla2}
-                  onChange={(e) =>
-                    handleTempScoreChange(match.id, 'dupla2', parseInt(e.target.value))
-                  }
-                  className="w-16 px-2 py-1 border rounded-md"
-                />
-              </div>
+            <div className="bg-gray-50 p-4 rounded-md">
+              <h3 className="font-medium mb-2">Classificação do Grupo</h3>
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left text-sm text-gray-600">
+                    <th className="pb-2">Posição</th>
+                    <th className="pb-2">Dupla</th>
+                    <th className="pb-2">Pontos</th>
+                    <th className="pb-2">Vitórias</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {calculateStandings(groups.find(g => g.name === selectedMatch.rodada)!).map((standing, index) => (
+                    <tr key={index} className="border-t">
+                      <td className="py-2">{index + 1}</td>
+                      <td className="py-2">{standing.team}</td>
+                      <td className="py-2">{standing.points}</td>
+                      <td className="py-2">{standing.wins}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
-          <button
-            onClick={saveScores}
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-          >
-            Atualizar Placar
-          </button>
+          </div>
         </div>
       )}
     </div>
