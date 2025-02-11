@@ -34,4 +34,5 @@ export interface Database {
   duplas: Team[];
   confrontos: Match[];
   votacoes: RoundVotes;
+  grupos: Group[];
 }

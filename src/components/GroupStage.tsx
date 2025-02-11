@@ -1,25 +1,41 @@
-import React, { useState } from 'react';
-import type { Team, Match } from '../types';
-
-interface Group {
-  id: string;
-  name: string;
-  teams: Team[];
-}
+import React, { useState, useEffect } from 'react';
+import type { Team, Match, Group } from '../types';
+import { fetchData } from '../services/jsonbin';
 
 const generateId = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  // Fallback para um ID simples (não é um UUID real)
   return Math.random().toString(36).substring(2, 9);
 };
+
+interface Props {
+  teams: Team[];
+  matches: Match[];
+  onUpdateMatches: (matches: Match[]) => void;
+}
 
 export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [tempScore, setTempScore] = useState({ dupla1: 0, dupla2: 0 });
   const [draggedTeam, setDraggedTeam] = useState<Team | null>(null);
+
+  // Carregar dados ao montar o componente
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await fetchData();
+        if (data.grupos) {
+          setGroups(data.grupos); // Inicializa os grupos com os dados do JSONBin
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+      }
+    };
+
+    loadData();
+  }, []);
 
   // Funções de Drag and Drop
   const handleDragStart = (e: React.DragEvent, team: Team) => {
@@ -67,7 +83,7 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
         const matchExists = matches.some(match =>
         (match.dupla1 === `${team1.atleta1} / ${team1.atleta2}` &&
           match.dupla2 === `${team2.atleta1} / ${team2.atleta2}`
-        ));
+        );
 
         if (!matchExists) {
           newMatches.push({
@@ -146,7 +162,6 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-6">
-
       {/* Coluna 1 - Formação de Grupos */}
       <div className="bg-white p-6 rounded-lg shadow-md">
         <h2 className="text-xl font-bold mb-4">🏗️ Formação de Grupos</h2>
