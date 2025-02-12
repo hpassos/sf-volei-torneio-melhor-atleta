@@ -86,7 +86,7 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
                   dupla2: `${team2.atleta1}/${team2.atleta2}`,
                   placar: { dupla1: 0, dupla2: 0 }
                 }))
-              );
+              ));
             onUpdateMatches([...matches, ...newMatches]);
           }}
           className="w-full mb-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
