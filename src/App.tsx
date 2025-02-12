@@ -14,6 +14,7 @@ const initialData: Database = {
   duplas: [],
   confrontos: [],
   votacoes: {},
+  grupos: [],
 };
 
 function App() {
@@ -86,11 +87,10 @@ function App() {
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`flex items-center space-x-2 px-4 py-3 font-medium transition-colors ${
-                  activeTab === id
+                className={`flex items-center space-x-2 px-4 py-3 font-medium transition-colors ${activeTab === id
                     ? 'border-b-2 border-indigo-600 text-indigo-600'
                     : 'text-gray-600 hover:text-indigo-600'
-                }`}
+                  }`}
               >
                 <Icon className="h-5 w-5" />
                 <span>{label}</span>

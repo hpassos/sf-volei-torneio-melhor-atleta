@@ -7,6 +7,7 @@ export interface Team {
   id: number;
   atleta1: string;
   atleta2: string;
+  grupo: string;
 }
 
 export interface Match {
