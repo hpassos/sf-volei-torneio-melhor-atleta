@@ -18,6 +18,7 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [tempScore, setTempScore] = useState({ dupla1: 0, dupla2: 0 });
+  const [activeTab, setActiveTab] = useState('groups');
 
   // Agrupa times automaticamente pelo campo grupo
   useEffect(() => {
@@ -54,7 +55,7 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
           if (!exists) {
             newMatches.push({
               id: generateId(),
-              rodada: `Grupo ${group.name}`,
+              rodada: group.name,
               dupla1: `${team1.atleta1}/${team1.atleta2}`,
               dupla2: `${team2.atleta1}/${team2.atleta2}`,
               placar: { dupla1: 0, dupla2: 0 }
@@ -69,95 +70,57 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
     }
   };
 
-  // Gera fases eliminatórias
-  const generateKnockoutMatches = (stage: string, team1: string, team2: string) => {
-    const exists = matches.some(m =>
-      m.rodada === stage && (
-        (m.dupla1 === team1 && m.dupla2 === team2) ||
-        (m.dupla1 === team2 && m.dupla2 === team1)
-      )
-    );
+  // Verifica se o placar é válido conforme as regras
+  const isValidScore = (score1: number, score2: number) => {
+    const maxScore = Math.max(score1, score2);
+    const minScore = Math.min(score1, score2);
 
-    if (!exists) {
-      onUpdateMatches([...matches, {
-        id: generateId(),
-        rodada: stage,
-        dupla1: team1,
-        dupla2: team2,
-        placar: { dupla1: 0, dupla2: 0 }
-      }]);
+    // Vitória normal
+    if (maxScore === 21 && minScore < 20) return true;
+
+    // Empate em 20-20 precisa de diferença de 2 pontos
+    if (maxScore >= 20 && minScore >= 20) {
+      return maxScore - minScore === 2;
     }
+
+    return false;
   };
 
-  // Calcula classificação
+  // Atualiza classificação
   const calculateStandings = (group: Group) => {
-    const standings: { [key: string]: { points: number; wins: number; goals: number } } = {};
+    const standings: { [key: string]: { points: number; wins: number; sets: number } } = {};
 
     group.teams.forEach(team => {
       const teamName = `${team.atleta1}/${team.atleta2}`;
-      standings[teamName] = { points: 0, wins: 0, goals: 0 };
+      standings[teamName] = { points: 0, wins: 0, sets: 0 };
     });
 
     matches
-      .filter(match => match.rodada === `Grupo ${group.name}`)
+      .filter(match => match.rodada === group.name)
       .forEach(match => {
-        if (match.placar.dupla1 > match.placar.dupla2) {
-          standings[match.dupla1].points += 3;
-          standings[match.dupla1].wins += 1;
-        } else if (match.placar.dupla2 > match.placar.dupla1) {
-          standings[match.dupla2].points += 3;
-          standings[match.dupla2].wins += 1;
-        } else {
-          standings[match.dupla1].points += 1;
-          standings[match.dupla2].points += 1;
+        const score1 = match.placar.dupla1;
+        const score2 = match.placar.dupla2;
+
+        if (isValidScore(score1, score2)) {
+          if (score1 > score2) {
+            standings[match.dupla1].wins += 1;
+            standings[match.dupla1].points += 3;
+          } else {
+            standings[match.dupla2].wins += 1;
+            standings[match.dupla2].points += 3;
+          }
         }
-        standings[match.dupla1].goals += match.placar.dupla1;
-        standings[match.dupla2].goals += match.placar.dupla2;
+
+        standings[match.dupla1].sets += score1;
+        standings[match.dupla2].sets += score2;
       });
 
     return Object.entries(standings)
       .sort((a, b) =>
         b[1].points - a[1].points ||
         b[1].wins - a[1].wins ||
-        b[1].goals - a[1].goals
+        b[1].sets - a[1].sets
       );
-  };
-
-  // Gera todas as fases eliminatórias
-  const generateAllKnockoutStages = () => {
-    const groupStandings = groups.map(group => ({
-      name: group.name,
-      standings: calculateStandings(group)
-    }));
-
-    if (groupStandings.length >= 2) {
-      const [groupA, groupB] = groupStandings;
-      const semi1 = [groupA.standings[0][0], groupB.standings[1][0]];
-      const semi2 = [groupB.standings[0][0], groupA.standings[1][0]];
-
-      // Semifinais
-      generateKnockoutMatches('Semifinal 1', semi1[0], semi1[1]);
-      generateKnockoutMatches('Semifinal 2', semi2[0], semi2[1]);
-
-      // Gera finais após as semifinais serem jogadas
-      const semifinals = matches.filter(m => m.rodada.startsWith('Semifinal'));
-      if (semifinals.every(m => m.placar.dupla1 + m.placar.dupla2 > 0)) {
-        const thirdPlaceTeams = semifinals
-          .filter(m => m.placar.dupla1 < m.placar.dupla2)
-          .map(m => m.dupla1);
-
-        const finalTeams = semifinals
-          .filter(m => m.placar.dupla1 > m.placar.dupla2)
-          .map(m => m.dupla1);
-
-        if (thirdPlaceTeams.length === 2) {
-          generateKnockoutMatches('Terceiro Lugar', thirdPlaceTeams[0], thirdPlaceTeams[1]);
-        }
-        if (finalTeams.length === 2) {
-          generateKnockoutMatches('Final', finalTeams[0], finalTeams[1]);
-        }
-      }
-    }
   };
 
   // Controle de Placar
@@ -178,6 +141,11 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
 
   const saveScore = () => {
     if (selectedMatch) {
+      if (!isValidScore(tempScore.dupla1, tempScore.dupla2)) {
+        alert('Placar inválido! O jogo deve terminar em 21 pontos com diferença de 2 pontos a partir dos 20 pontos.');
+        return;
+      }
+
       const updatedMatches = matches.map(match =>
         match.id === selectedMatch.id ? {
           ...match,
@@ -190,108 +158,163 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-6">
-      {/* Coluna 1 - Grupos e Classificação */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-bold mb-4">🏆 Fase de Grupos</h2>
+    <div className="p-6">
+      <div className="flex gap-4 mb-6 border-b">
         <button
-          onClick={generateGroupMatches}
-          className="w-full mb-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          onClick={() => setActiveTab('groups')}
+          className={`px-4 py-2 ${activeTab === 'groups' ? 'border-b-2 border-indigo-600' : ''}`}
         >
-          Gerar Confrontos dos Grupos
+          🏆 Fase de Grupos
         </button>
+        <button
+          onClick={() => setActiveTab('matches')}
+          className={`px-4 py-2 ${activeTab === 'matches' ? 'border-b-2 border-indigo-600' : ''}`}
+        >
+          ⚔️ Confrontos
+        </button>
+      </div>
 
-        {groups.map(group => (
-          <div key={group.id} className="mb-6">
-            <h3 className="font-bold mb-2">Grupo {group.name}</h3>
-            <div className="bg-gray-50 p-4 rounded-md">
-              {calculateStandings(group).map(([team, stats], index) => (
-                <div key={team} className="flex justify-between items-center mb-2">
-                  <div>
-                    <span className="font-medium">{index + 1}º</span> {team}
+      {activeTab === 'groups' && (
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <button
+            onClick={generateGroupMatches}
+            className="w-full mb-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          >
+            Gerar Confrontos dos Grupos
+          </button>
+
+          {groups.map(group => (
+            <div key={group.id} className="mb-6">
+              <h3 className="font-bold mb-2 text-lg">Grupo {group.name}</h3>
+              <div className="bg-gray-50 p-4 rounded-md">
+                {calculateStandings(group).map(([team, stats], index) => (
+                  <div key={team} className="flex justify-between items-center mb-2 p-2 bg-white rounded shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium w-8">{index + 1}º</span>
+                      <span className="font-semibold">{team}</span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      <span className="bg-indigo-100 px-2 py-1 rounded">{stats.points} pts</span>
+                      <span className="mx-2">|</span>
+                      <span className="bg-green-100 px-2 py-1 rounded">{stats.wins} V</span>
+                      <span className="mx-2">|</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">{stats.sets} P</span>
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    {stats.points} pts | {stats.wins} V | {stats.goals} G
-                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {activeTab === 'matches' && (
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-lg font-bold mb-4">Partidas dos Grupos</h3>
+              {groups.map(group => (
+                <div key={group.id} className="mb-6">
+                  <h4 className="font-medium mb-2">Grupo {group.name}</h4>
+                  {matches
+                    .filter(m => m.rodada === group.name)
+                    .map(match => (
+                      <div key={match.id} className="bg-gray-50 p-3 rounded-md mb-2 cursor-pointer hover:bg-gray-100"
+                        onClick={() => selectMatch(match)}>
+                        <div className="flex justify-between items-center">
+                          <span className="flex-1 text-right">{match.dupla1}</span>
+                          <span className="mx-3 font-bold">vs</span>
+                          <span className="flex-1 text-left">{match.dupla2}</span>
+                        </div>
+                        {match.placar.dupla1 + match.placar.dupla2 > 0 && (
+                          <div className={`text-center mt-2 font-medium ${isValidScore(match.placar.dupla1, match.placar.dupla2)
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                            }`}>
+                            {match.placar.dupla1} - {match.placar.dupla2}
+                            {!isValidScore(match.placar.dupla1, match.placar.dupla2) &&
+                              ' (Jogo não finalizado)'}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              ))}
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold mb-4">Fases Eliminatórias</h3>
+              {['Semifinal', 'Terceiro Lugar', 'Final'].map(stage => (
+                <div key={stage} className="mb-6">
+                  <h4 className="font-medium mb-2">{stage}</h4>
+                  {matches
+                    .filter(m => m.rodada.startsWith(stage))
+                    .map(match => (
+                      <div key={match.id} className="bg-gray-50 p-3 rounded-md mb-2 cursor-pointer hover:bg-gray-100"
+                        onClick={() => selectMatch(match)}>
+                        <div className="flex justify-between items-center">
+                          <span className="flex-1 text-right">{match.dupla1}</span>
+                          <span className="mx-3 font-bold">vs</span>
+                          <span className="flex-1 text-left">{match.dupla2}</span>
+                        </div>
+                        {match.placar.dupla1 + match.placar.dupla2 > 0 && (
+                          <div className={`text-center mt-2 font-medium ${isValidScore(match.placar.dupla1, match.placar.dupla2)
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                            }`}>
+                            {match.placar.dupla1} - {match.placar.dupla2}
+                            {!isValidScore(match.placar.dupla1, match.placar.dupla2) &&
+                              ' (Jogo não finalizado)'}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                 </div>
               ))}
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
-      {/* Coluna 2 - Confrontos */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-bold mb-4">⚔️ Confrontos</h2>
-        <button
-          onClick={generateAllKnockoutStages}
-          className="w-full mb-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-        >
-          Gerar Fases Eliminatórias
-        </button>
-
-        {['Grupo', 'Semifinal', 'Terceiro Lugar', 'Final'].map(stage => (
-          <div key={stage} className="mb-6">
-            <h3 className="font-bold mb-2">{stage}s</h3>
-            {matches
-              .filter(m => m.rodada.startsWith(stage))
-              .map(match => (
-                <div key={match.id} className="bg-gray-50 p-4 rounded-md mb-2 cursor-pointer"
-                  onClick={() => selectMatch(match)}>
-                  <div className="flex justify-between items-center">
-                    <span>{match.dupla1}</span>
-                    <span className="mx-2">vs</span>
-                    <span>{match.dupla2}</span>
-                  </div>
-                  {match.placar.dupla1 + match.placar.dupla2 > 0 && (
-                    <div className="text-center mt-1 text-sm text-gray-600">
-                      {match.placar.dupla1} - {match.placar.dupla2}
-                    </div>
-                  )}
-                </div>
-              ))}
-          </div>
-        ))}
-      </div>
-
-      {/* Coluna 3 - Controle de Placar */}
       {selectedMatch && (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold mb-4">📊 Controle de Partida</h2>
-          <div className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-md">
-              <h3 className="font-medium mb-4">Placar da Partida</h3>
-              <div className="flex items-center justify-center gap-4">
-                <div className="text-center">
-                  <input
-                    type="number"
-                    value={tempScore.dupla1}
-                    onChange={(e) => handleScoreChange('dupla1', e.target.value)}
-                    className="w-20 text-center text-xl p-2 border rounded-md"
-                    min="0"
-                  />
-                  <div className="mt-2 text-sm text-gray-600">{selectedMatch.dupla1}</div>
-                </div>
-
-                <div className="text-2xl font-bold">x</div>
-
-                <div className="text-center">
-                  <input
-                    type="number"
-                    value={tempScore.dupla2}
-                    onChange={(e) => handleScoreChange('dupla2', e.target.value)}
-                    className="w-20 text-center text-xl p-2 border rounded-md"
-                    min="0"
-                  />
-                  <div className="mt-2 text-sm text-gray-600">{selectedMatch.dupla2}</div>
-                </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h2 className="text-xl font-bold mb-4">Editar Placar</h2>
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <div className="text-center">
+                <input
+                  type="number"
+                  value={tempScore.dupla1}
+                  onChange={(e) => handleScoreChange('dupla1', e.target.value)}
+                  className="w-20 text-center text-xl p-2 border rounded-md"
+                  min="0"
+                />
+                <div className="mt-2 text-sm text-gray-600">{selectedMatch.dupla1}</div>
               </div>
-
+              <span className="text-2xl font-bold">x</span>
+              <div className="text-center">
+                <input
+                  type="number"
+                  value={tempScore.dupla2}
+                  onChange={(e) => handleScoreChange('dupla2', e.target.value)}
+                  className="w-20 text-center text-xl p-2 border rounded-md"
+                  min="0"
+                />
+                <div className="mt-2 text-sm text-gray-600">{selectedMatch.dupla2}</div>
+              </div>
+            </div>
+            <div className="flex gap-2">
               <button
                 onClick={saveScore}
-                className="w-full mt-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                className="flex-1 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
               >
-                Salvar Placar
+                Salvar
+              </button>
+              <button
+                onClick={() => setSelectedMatch(null)}
+                className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+              >
+                Cancelar
               </button>
             </div>
           </div>
