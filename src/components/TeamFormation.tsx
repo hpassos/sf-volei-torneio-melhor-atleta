@@ -103,6 +103,33 @@ export default function TeamFormation({ athletes, teams, onUpdate }: Props) {
           Criar Dupla
         </button>
       </form>
+
+      <div className="bg-gray-50 rounded-lg p-4 mt-8">
+        <h3 className="text-lg font-semibold mb-4">Duplas Cadastradas</h3>
+        {teams.length === 0 ? (
+          <p className="text-gray-500">Nenhuma dupla cadastrada</p>
+        ) : (
+          <ul className="space-y-2">
+            {teams.map((team) => (
+              <li
+                key={team.id}
+                className="flex items-center justify-between bg-white p-3 rounded-md shadow-sm"
+              >
+                <div className="flex-1">
+                  <span className="font-medium">{team.atleta1}</span> e{' '}
+                  <span className="font-medium">{team.atleta2}</span>
+                  {team.grupo && (
+                    <span className="ml-4 text-gray-600">
+                      (Grupo: {team.grupo})
+                    </span>
+                  )}
+                </div>
+                <span className="text-gray-500">#{team.id}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

@@ -71,7 +71,6 @@ export default function AthleteRegistration({ athletes, onUpdate }: Props) {
                 className="flex items-center justify-between bg-white p-3 rounded-md shadow-sm"
               >
                 <span>{athlete.nome}</span>
-                <span className="text-gray-500">#{athlete.id}</span>
               </li>
             ))}
           </ul>
