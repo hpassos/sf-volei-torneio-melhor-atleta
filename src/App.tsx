@@ -56,9 +56,9 @@ function App() {
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'athletes', label: 'Cadastro de Atletas', icon: Users },
     { id: 'teams', label: 'Formação de Duplas', icon: Trophy },
-    { id: 'matches', label: 'Cadastro de Confrontos', icon: Swords },
     { id: 'voting', label: 'Votação', icon: Vote },
     { id: 'groups', label: 'Fase de Grupos', icon: LayoutGrid },
+    { id: 'matches', label: 'Confrontos', icon: Swords },
   ];
 
   if (loading) {
@@ -88,8 +88,8 @@ function App() {
                 key={id}
                 onClick={() => setActiveTab(id)}
                 className={`flex items-center space-x-2 px-4 py-3 font-medium transition-colors ${activeTab === id
-                    ? 'border-b-2 border-indigo-600 text-indigo-600'
-                    : 'text-gray-600 hover:text-indigo-600'
+                  ? 'border-b-2 border-indigo-600 text-indigo-600'
+                  : 'text-gray-600 hover:text-indigo-600'
                   }`}
               >
                 <Icon className="h-5 w-5" />

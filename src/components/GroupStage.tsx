@@ -88,11 +88,17 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
 
   // Atualiza classificação
   const calculateStandings = (group: Group) => {
-    const standings: { [key: string]: { points: number; wins: number; sets: number } } = {};
+    const standings: {
+      [key: string]: {
+        wins: number;
+        pointsFor: number;
+        pointsAgainst: number;
+      }
+    } = {};
 
     group.teams.forEach(team => {
       const teamName = `${team.atleta1}/${team.atleta2}`;
-      standings[teamName] = { points: 0, wins: 0, sets: 0 };
+      standings[teamName] = { wins: 0, pointsFor: 0, pointsAgainst: 0 };
     });
 
     matches
@@ -101,25 +107,41 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
         const score1 = match.placar.dupla1;
         const score2 = match.placar.dupla2;
 
+        // Atualiza pontos marcados e sofridos
+        standings[match.dupla1].pointsFor += score1;
+        standings[match.dupla1].pointsAgainst += score2;
+
+        standings[match.dupla2].pointsFor += score2;
+        standings[match.dupla2].pointsAgainst += score2;
+
+        // Verifica vitória válida
         if (isValidScore(score1, score2)) {
           if (score1 > score2) {
             standings[match.dupla1].wins += 1;
-            standings[match.dupla1].points += 3;
           } else {
             standings[match.dupla2].wins += 1;
-            standings[match.dupla2].points += 3;
           }
         }
-
-        standings[match.dupla1].sets += score1;
-        standings[match.dupla2].sets += score2;
       });
 
     return Object.entries(standings)
+      .map(([team, stats]) => {
+        const saldo = stats.pointsFor - stats.pointsAgainst;
+        const pa = stats.pointsAgainst > 0
+          ? (stats.pointsFor / stats.pointsAgainst).toFixed(2)
+          : '∞';
+
+        return {
+          team,
+          wins: stats.wins,
+          saldo,
+          pa
+        };
+      })
       .sort((a, b) =>
-        b[1].points - a[1].points ||
-        b[1].wins - a[1].wins ||
-        b[1].sets - a[1].sets
+        b.wins - a.wins ||
+        b.saldo - a.saldo ||
+        parseFloat(b.pa) - parseFloat(a.pa)
       );
   };
 
@@ -187,18 +209,18 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
             <div key={group.id} className="mb-6">
               <h3 className="font-bold mb-2 text-lg">Grupo {group.name}</h3>
               <div className="bg-gray-50 p-4 rounded-md">
-                {calculateStandings(group).map(([team, stats], index) => (
+                {calculateStandings(group).map(({ team, wins, saldo, pa }, index) => (
                   <div key={team} className="flex justify-between items-center mb-2 p-2 bg-white rounded shadow-sm">
                     <div className="flex items-center gap-3">
                       <span className="font-medium w-8">{index + 1}º</span>
                       <span className="font-semibold">{team}</span>
                     </div>
                     <div className="text-sm text-gray-600">
-                      <span className="bg-indigo-100 px-2 py-1 rounded">{stats.points} pts</span>
+                      <span className="bg-green-100 px-2 py-1 rounded">{wins} V</span>
                       <span className="mx-2">|</span>
-                      <span className="bg-green-100 px-2 py-1 rounded">{stats.wins} V</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">{saldo} SP</span>
                       <span className="mx-2">|</span>
-                      <span className="bg-blue-100 px-2 py-1 rounded">{stats.sets} P</span>
+                      <span className="bg-purple-100 px-2 py-1 rounded">{pa} PA</span>
                     </div>
                   </div>
                 ))}
@@ -228,8 +250,8 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
                         </div>
                         {match.placar.dupla1 + match.placar.dupla2 > 0 && (
                           <div className={`text-center mt-2 font-medium ${isValidScore(match.placar.dupla1, match.placar.dupla2)
-                              ? 'text-green-600'
-                              : 'text-red-600'
+                            ? 'text-green-600'
+                            : 'text-red-600'
                             }`}>
                             {match.placar.dupla1} - {match.placar.dupla2}
                             {!isValidScore(match.placar.dupla1, match.placar.dupla2) &&
@@ -259,8 +281,8 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
                         </div>
                         {match.placar.dupla1 + match.placar.dupla2 > 0 && (
                           <div className={`text-center mt-2 font-medium ${isValidScore(match.placar.dupla1, match.placar.dupla2)
-                              ? 'text-green-600'
-                              : 'text-red-600'
+                            ? 'text-green-600'
+                            : 'text-red-600'
                             }`}>
                             {match.placar.dupla1} - {match.placar.dupla2}
                             {!isValidScore(match.placar.dupla1, match.placar.dupla2) &&
