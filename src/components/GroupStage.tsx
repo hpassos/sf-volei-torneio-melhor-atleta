@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import type { Team, Match, Group } from '../types';
-import { fetchData } from '../services/jsonbin';
 
 const generateId = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -19,86 +18,145 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [tempScore, setTempScore] = useState({ dupla1: 0, dupla2: 0 });
-  const [draggedTeam, setDraggedTeam] = useState<Team | null>(null);
 
-  // Carregar dados ao montar o componente
+  // Agrupa times automaticamente pelo campo grupo
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const data = await fetchData();
-        if (data.grupos) {
-          setGroups(data.grupos); // Inicializa os grupos com os dados do JSONBin
-        }
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-      }
-    };
+    const grouped = teams.reduce((acc: { [key: string]: Team[] }, team) => {
+      const groupName = team.grupo || 'Sem Grupo';
+      if (!acc[groupName]) acc[groupName] = [];
+      acc[groupName].push(team);
+      return acc;
+    }, {});
 
-    loadData();
-  }, []);
+    const formattedGroups = Object.entries(grouped).map(([name, teams]) => ({
+      id: name,
+      name,
+      teams
+    }));
 
-  // Funções de Drag and Drop
-  const handleDragStart = (e: React.DragEvent, team: Team) => {
-    setDraggedTeam(team);
-    e.dataTransfer.setData('text/plain', team.id);
-  };
+    setGroups(formattedGroups);
+  }, [teams]);
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent, groupIndex: number) => {
-    e.preventDefault();
-    if (draggedTeam) {
-      const updatedGroups = [...groups];
-      updatedGroups[groupIndex].teams.push(draggedTeam);
-      setGroups(updatedGroups);
-      setDraggedTeam(null);
-    }
-  };
-
-  // Criação e Gerenciamento de Grupos
-  const createNewGroup = () => {
-    const newGroup: Group = {
-      id: generateId(),
-      name: `Grupo ${groups.length + 1}`,
-      teams: []
-    };
-    setGroups([...groups, newGroup]);
-  };
-
-  const deleteGroup = (groupId: string) => {
-    setGroups(groups.filter(group => group.id !== groupId));
-  };
-
-  // Geração de Confrontos
-  const generateMatches = (group: Group) => {
+  // Gera confrontos da fase de grupos
+  const generateGroupMatches = () => {
     const newMatches: Match[] = [];
 
-    for (let i = 0; i < group.teams.length; i++) {
-      for (let j = i + 1; j < group.teams.length; j++) {
-        const team1 = group.teams[i];
-        const team2 = group.teams[j];
+    groups.forEach(group => {
+      group.teams.forEach((team1, i) => {
+        group.teams.slice(i + 1).forEach(team2 => {
+          const exists = matches.some(m =>
+            (m.dupla1 === `${team1.atleta1}/${team1.atleta2}` &&
+              m.dupla2 === `${team2.atleta1}/${team2.atleta2}`) ||
+            (m.dupla1 === `${team2.atleta1}/${team2.atleta2}` &&
+              m.dupla2 === `${team1.atleta1}/${team1.atleta2}`)
+          );
 
-        const matchExists = matches.some(match =>
-        (match.dupla1 === `${team1.atleta1} / ${team1.atleta2}` &&
-          match.dupla2 === `${team2.atleta1} / ${team2.atleta2}`
-        ));
-
-        if (!matchExists) {
-          newMatches.push({
-            id: generateId(),
-            rodada: group.name,
-            dupla1: `${team1.atleta1} / ${team1.atleta2}`,
-            dupla2: `${team2.atleta1} / ${team2.atleta2}`,
-            placar: { dupla1: 0, dupla2: 0 }
-          });
-        }
-      }
-    }
+          if (!exists) {
+            newMatches.push({
+              id: generateId(),
+              rodada: `Grupo ${group.name}`,
+              dupla1: `${team1.atleta1}/${team1.atleta2}`,
+              dupla2: `${team2.atleta1}/${team2.atleta2}`,
+              placar: { dupla1: 0, dupla2: 0 }
+            });
+          }
+        });
+      });
+    });
 
     if (newMatches.length > 0) {
       onUpdateMatches([...matches, ...newMatches]);
+    }
+  };
+
+  // Gera fases eliminatórias
+  const generateKnockoutMatches = (stage: string, team1: string, team2: string) => {
+    const exists = matches.some(m =>
+      m.rodada === stage && (
+        (m.dupla1 === team1 && m.dupla2 === team2) ||
+        (m.dupla1 === team2 && m.dupla2 === team1)
+      )
+    );
+
+    if (!exists) {
+      onUpdateMatches([...matches, {
+        id: generateId(),
+        rodada: stage,
+        dupla1: team1,
+        dupla2: team2,
+        placar: { dupla1: 0, dupla2: 0 }
+      }]);
+    }
+  };
+
+  // Calcula classificação
+  const calculateStandings = (group: Group) => {
+    const standings: { [key: string]: { points: number; wins: number; goals: number } } = {};
+
+    group.teams.forEach(team => {
+      const teamName = `${team.atleta1}/${team.atleta2}`;
+      standings[teamName] = { points: 0, wins: 0, goals: 0 };
+    });
+
+    matches
+      .filter(match => match.rodada === `Grupo ${group.name}`)
+      .forEach(match => {
+        if (match.placar.dupla1 > match.placar.dupla2) {
+          standings[match.dupla1].points += 3;
+          standings[match.dupla1].wins += 1;
+        } else if (match.placar.dupla2 > match.placar.dupla1) {
+          standings[match.dupla2].points += 3;
+          standings[match.dupla2].wins += 1;
+        } else {
+          standings[match.dupla1].points += 1;
+          standings[match.dupla2].points += 1;
+        }
+        standings[match.dupla1].goals += match.placar.dupla1;
+        standings[match.dupla2].goals += match.placar.dupla2;
+      });
+
+    return Object.entries(standings)
+      .sort((a, b) =>
+        b[1].points - a[1].points ||
+        b[1].wins - a[1].wins ||
+        b[1].goals - a[1].goals
+      );
+  };
+
+  // Gera todas as fases eliminatórias
+  const generateAllKnockoutStages = () => {
+    const groupStandings = groups.map(group => ({
+      name: group.name,
+      standings: calculateStandings(group)
+    }));
+
+    if (groupStandings.length >= 2) {
+      const [groupA, groupB] = groupStandings;
+      const semi1 = [groupA.standings[0][0], groupB.standings[1][0]];
+      const semi2 = [groupB.standings[0][0], groupA.standings[1][0]];
+
+      // Semifinais
+      generateKnockoutMatches('Semifinal 1', semi1[0], semi1[1]);
+      generateKnockoutMatches('Semifinal 2', semi2[0], semi2[1]);
+
+      // Gera finais após as semifinais serem jogadas
+      const semifinals = matches.filter(m => m.rodada.startsWith('Semifinal'));
+      if (semifinals.every(m => m.placar.dupla1 + m.placar.dupla2 > 0)) {
+        const thirdPlaceTeams = semifinals
+          .filter(m => m.placar.dupla1 < m.placar.dupla2)
+          .map(m => m.dupla1);
+
+        const finalTeams = semifinals
+          .filter(m => m.placar.dupla1 > m.placar.dupla2)
+          .map(m => m.dupla1);
+
+        if (thirdPlaceTeams.length === 2) {
+          generateKnockoutMatches('Terceiro Lugar', thirdPlaceTeams[0], thirdPlaceTeams[1]);
+        }
+        if (finalTeams.length === 2) {
+          generateKnockoutMatches('Final', finalTeams[0], finalTeams[1]);
+        }
+      }
     }
   };
 
@@ -131,140 +189,69 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
     }
   };
 
-  // Cálculo de Classificação
-  const calculateStandings = (group: Group) => {
-    const standings: { [key: string]: { points: number; wins: number } } = {};
-
-    group.teams.forEach(team => {
-      const teamName = `${team.atleta1} / ${team.atleta2}`;
-      standings[teamName] = { points: 0, wins: 0 };
-    });
-
-    matches
-      .filter(match => match.rodada === group.name)
-      .forEach(match => {
-        if (match.placar.dupla1 > match.placar.dupla2) {
-          standings[match.dupla1].points += 3;
-          standings[match.dupla1].wins += 1;
-        } else if (match.placar.dupla2 > match.placar.dupla1) {
-          standings[match.dupla2].points += 3;
-          standings[match.dupla2].wins += 1;
-        } else {
-          standings[match.dupla1].points += 1;
-          standings[match.dupla2].points += 1;
-        }
-      });
-
-    return Object.entries(standings)
-      .sort((a, b) => b[1].points - a[1].points)
-      .map(([team, { points, wins }]) => ({ team, points, wins }));
-  };
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-6">
-      {/* Coluna 1 - Formação de Grupos */}
+      {/* Coluna 1 - Grupos e Classificação */}
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-bold mb-4">🏗️ Formação de Grupos</h2>
-        <div className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-md">
-            <h3 className="font-medium mb-2">Duplas Disponíveis</h3>
-            <div className="grid grid-cols-1 gap-2">
-              {teams.map(team => (
-                <div
-                  key={team.id}
-                  className="p-2 border rounded-md cursor-move hover:bg-indigo-50"
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, team)}
-                >
-                  {team.atleta1} / {team.atleta2}
+        <h2 className="text-xl font-bold mb-4">🏆 Fase de Grupos</h2>
+        <button
+          onClick={generateGroupMatches}
+          className="w-full mb-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+        >
+          Gerar Confrontos dos Grupos
+        </button>
+
+        {groups.map(group => (
+          <div key={group.id} className="mb-6">
+            <h3 className="font-bold mb-2">Grupo {group.name}</h3>
+            <div className="bg-gray-50 p-4 rounded-md">
+              {calculateStandings(group).map(([team, stats], index) => (
+                <div key={team} className="flex justify-between items-center mb-2">
+                  <div>
+                    <span className="font-medium">{index + 1}º</span> {team}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {stats.points} pts | {stats.wins} V | {stats.goals} G
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-
-          <div className="bg-gray-50 p-4 rounded-md">
-            <h3 className="font-medium mb-2">Grupos Criados</h3>
-            {groups.map((group, index) => (
-              <div
-                key={group.id}
-                className="p-4 mb-2 border rounded-md bg-white"
-                onDrop={(e) => handleDrop(e, index)}
-                onDragOver={handleDragOver}
-              >
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium">Grupo {index + 1}</span>
-                  <button
-                    onClick={() => deleteGroup(group.id)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    ✕
-                  </button>
-                </div>
-                {group.teams.map(team => (
-                  <div
-                    key={team.id}
-                    className="p-1 text-sm border rounded-sm mb-1 bg-gray-50"
-                  >
-                    {team.atleta1} / {team.atleta2}
-                  </div>
-                ))}
-              </div>
-            ))}
-            <button
-              onClick={createNewGroup}
-              className="w-full mt-2 py-2 bg-indigo-100 text-indigo-600 rounded-md hover:bg-indigo-200"
-            >
-              + Novo Grupo
-            </button>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Coluna 2 - Confrontos do Grupo */}
+      {/* Coluna 2 - Confrontos */}
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-bold mb-4">⚔️ Confrontos Agendados</h2>
-        <div className="space-y-4">
-          {groups.map(group => (
-            <div key={group.id} className="border rounded-md p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-medium">{group.name}</h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => generateMatches(group)}
-                    className="px-3 py-1 bg-green-100 text-green-600 rounded-md text-sm"
-                  >
-                    Gerar Confrontos
-                  </button>
-                </div>
-              </div>
+        <h2 className="text-xl font-bold mb-4">⚔️ Confrontos</h2>
+        <button
+          onClick={generateAllKnockoutStages}
+          className="w-full mb-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+        >
+          Gerar Fases Eliminatórias
+        </button>
 
-              <div className="grid grid-cols-1 gap-2">
-                {matches
-                  .filter(match => match.rodada === group.name)
-                  .map(match => (
-                    <div
-                      key={match.id}
-                      className={`p-3 rounded-md cursor-pointer ${match.placar.dupla1 + match.placar.dupla2 > 0
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-gray-50 hover:bg-gray-100'}`}
-                      onClick={() => selectMatch(match)}
-                    >
-                      <div className="flex justify-between items-center">
-                        <span>{match.dupla1}</span>
-                        <span className="mx-2">vs</span>
-                        <span>{match.dupla2}</span>
-                      </div>
-                      {match.placar.dupla1 + match.placar.dupla2 > 0 && (
-                        <div className="text-center mt-1 text-sm text-gray-600">
-                          {match.placar.dupla1} - {match.placar.dupla2}
-                        </div>
-                      )}
+        {['Grupo', 'Semifinal', 'Terceiro Lugar', 'Final'].map(stage => (
+          <div key={stage} className="mb-6">
+            <h3 className="font-bold mb-2">{stage}s</h3>
+            {matches
+              .filter(m => m.rodada.startsWith(stage))
+              .map(match => (
+                <div key={match.id} className="bg-gray-50 p-4 rounded-md mb-2 cursor-pointer"
+                  onClick={() => selectMatch(match)}>
+                  <div className="flex justify-between items-center">
+                    <span>{match.dupla1}</span>
+                    <span className="mx-2">vs</span>
+                    <span>{match.dupla2}</span>
+                  </div>
+                  {match.placar.dupla1 + match.placar.dupla2 > 0 && (
+                    <div className="text-center mt-1 text-sm text-gray-600">
+                      {match.placar.dupla1} - {match.placar.dupla2}
                     </div>
-                  ))}
-              </div>
-            </div>
-          ))}
-        </div>
+                  )}
+                </div>
+              ))}
+          </div>
+        ))}
       </div>
 
       {/* Coluna 3 - Controle de Placar */}
@@ -306,30 +293,6 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
               >
                 Salvar Placar
               </button>
-            </div>
-
-            <div className="bg-gray-50 p-4 rounded-md">
-              <h3 className="font-medium mb-2">Classificação do Grupo</h3>
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left text-sm text-gray-600">
-                    <th className="pb-2">Posição</th>
-                    <th className="pb-2">Dupla</th>
-                    <th className="pb-2">Pontos</th>
-                    <th className="pb-2">Vitórias</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {calculateStandings(groups.find(g => g.name === selectedMatch.rodada)!).map((standing, index) => (
-                    <tr key={index} className="border-t">
-                      <td className="py-2">{index + 1}</td>
-                      <td className="py-2">{standing.team}</td>
-                      <td className="py-2">{standing.points}</td>
-                      <td className="py-2">{standing.wins}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </div>
         </div>
