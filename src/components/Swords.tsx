@@ -3,11 +3,11 @@ import type { Match, Team } from '../types';
 
 interface Props {
   teams: Team[];
-  matches: Match[];
+  matches?: Match[];
   onUpdate: (matches: Match[]) => void;
 }
 
-export default function Swords({ matches, onUpdate }: Props) {
+export default function Swords({ matches = [], onUpdate }: Props) {
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [tempScore, setTempScore] = useState({ dupla1: 0, dupla2: 0 });
 
@@ -75,7 +75,7 @@ export default function Swords({ matches, onUpdate }: Props) {
             {['Semifinal', 'Terceiro Lugar', 'Final'].map(stage => (
               <div key={stage} className="mb-6">
                 <h4 className="font-medium mb-2">{stage}</h4>
-                {matches.filter(m => m.rodada === stage).map(match => (
+                {(matches || []).filter(m => m.rodada === stage).map(match => (
                   <div
                     key={match.id}
                     className="bg-gray-50 p-3 rounded-md mb-2 cursor-pointer hover:bg-gray-100"
