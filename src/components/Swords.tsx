@@ -41,7 +41,7 @@ export default function Swords({ matches, onUpdate }: Props) {
             {[...new Set(matches?.map(m => m.rodada))].map(group => (
               <div key={group} className="mb-6">
                 <h4 className="font-medium mb-2">{group}</h4>
-                {matches.filter(m => m.rodada === group).map(match => (
+                {(matches || []).filter(m => m.rodada === group).map(match => (
                   <div
                     key={match.id}
                     className="bg-gray-50 p-3 rounded-md mb-2 cursor-pointer hover:bg-gray-100"
