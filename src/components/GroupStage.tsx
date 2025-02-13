@@ -36,6 +36,8 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
   };
 
   const calculateStandings = (group: Group) => {
+    if (!group?.teams) return [];
+
     const standings: {
       [key: string]: { wins: number; pointsFor: number; pointsAgainst: number }
     } = {};
