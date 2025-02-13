@@ -37,3 +37,11 @@ export interface Database {
   votacoes: RoundVotes;
   grupos: Group[];
 }
+
+const initialData: Database = {
+  atletas: [],
+  duplas: [],
+  confrontos: [],
+  votacoes: {},
+  grupos: [],
+};

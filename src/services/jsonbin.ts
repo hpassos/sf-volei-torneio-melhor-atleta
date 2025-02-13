@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { Database } from '../types';
+import { initialData } from '../types';
 
 const JSONBIN_API_KEY = '$2a$10$2EXYkBLG9hlyY8HZN7ABKOVwtBKpIsi86FZ72iU8.AJ4SFD92D3Wy'; // Replace with your JSONBin.io API key
 const BIN_ID = '67a12c15e41b4d34e4838ee6'; // Replace with your bin ID
@@ -15,11 +16,18 @@ const api = axios.create({
 
 export async function fetchData(): Promise<Database> {
   try {
-    const response = await api.get(`/${BIN_ID}/latest`);
-    return { ...initialData, ...response.data.record };
+    const response = await api.get('/${BIN_ID}/latest');
+    return {
+      ...initialData,
+      ...response.data.record,
+      atletas: response.data.record.atletas || [],
+      duplas: response.data.record.duplas || [],
+      confrontos: response.data.record.confrontos || [],
+      grupos: response.data.record.grupos || []
+    };
   } catch (error) {
     console.error('Error fetching data:', error);
-    throw new Error(`Failed to fetch data: ${error.message}`);
+    throw new Error('Failed to fetch data: ${ error.message }');
   }
 }
 

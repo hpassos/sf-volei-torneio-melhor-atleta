@@ -8,14 +8,9 @@ import Dashboard from './components/Dashboard';
 import GroupStage from './components/GroupStage';
 import { fetchData, updateData } from './services/jsonbin';
 import type { Database } from './types';
+import { initialData } from './types';
 
-const initialData: Database = {
-  atletas: [],
-  duplas: [],
-  confrontos: [],
-  votacoes: {},
-  grupos: [],
-};
+
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');

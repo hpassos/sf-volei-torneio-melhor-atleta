@@ -22,7 +22,7 @@ const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 export default function Dashboard({ data }: Props) {
   const voteStats = useMemo(() => {
     const stats: Record<string, number> = {};
-    
+
     Object.values(data.votacoes).forEach(roundVotes => {
       roundVotes.forEach(vote => {
         stats[vote.voto] = (stats[vote.voto] || 0) + 1;
@@ -118,7 +118,7 @@ export default function Dashboard({ data }: Props) {
             <div className="bg-purple-50 p-4 rounded-lg">
               <p className="text-sm text-purple-600 mb-1">Total de Votos</p>
               <p className="text-2xl font-bold text-purple-900">
-                {Object.values(data.votacoes).reduce((acc, curr) => acc + curr.length, 0)}
+                {Object.values(data.votacoes).flat().reduce((acc, curr) => acc + curr.length, 0)}
               </p>
             </div>
           </div>
