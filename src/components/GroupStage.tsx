@@ -80,7 +80,7 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
         <button
           onClick={() => {
             const newMatches = groups.flatMap(group =>
-              group.teams.flatMap((team1, i) =>
+              group.teams?.flatMap((team1, i) =>
                 group.teams.slice(i + 1).map(team2 => ({
                   id: crypto.randomUUID(),
                   rodada: group.name,

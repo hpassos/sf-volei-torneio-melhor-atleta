@@ -16,7 +16,7 @@ const api = axios.create({
 export async function fetchData(): Promise<Database> {
   try {
     const response = await api.get(`/${BIN_ID}/latest`);
-    return response.data.record;
+    return { ...initialData, ...response.data.record };
   } catch (error) {
     console.error('Error fetching data:', error);
     throw new Error(`Failed to fetch data: ${error.message}`);

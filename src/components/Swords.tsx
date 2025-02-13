@@ -38,7 +38,7 @@ export default function Swords({ matches, onUpdate }: Props) {
           {/* Grupos */}
           <div>
             <h3 className="text-lg font-bold mb-4">Partidas dos Grupos</h3>
-            {[...new Set(matches.map(m => m.rodada))].map(group => (
+            {[...new Set(matches?.map(m => m.rodada))].map(group => (
               <div key={group} className="mb-6">
                 <h4 className="font-medium mb-2">{group}</h4>
                 {matches.filter(m => m.rodada === group).map(match => (
@@ -57,8 +57,8 @@ export default function Swords({ matches, onUpdate }: Props) {
                     </div>
                     {match.placar.dupla1 + match.placar.dupla2 > 0 && (
                       <div className={`text-center mt-2 font-medium ${isValidScore(match.placar.dupla1, match.placar.dupla2)
-                          ? 'text-green-600'
-                          : 'text-red-600'
+                        ? 'text-green-600'
+                        : 'text-red-600'
                         }`}>
                         {match.placar.dupla1} - {match.placar.dupla2}
                       </div>
@@ -91,8 +91,8 @@ export default function Swords({ matches, onUpdate }: Props) {
                     </div>
                     {match.placar.dupla1 + match.placar.dupla2 > 0 && (
                       <div className={`text-center mt-2 font-medium ${isValidScore(match.placar.dupla1, match.placar.dupla2)
-                          ? 'text-green-600'
-                          : 'text-red-600'
+                        ? 'text-green-600'
+                        : 'text-red-600'
                         }`}>
                         {match.placar.dupla1} - {match.placar.dupla2}
                       </div>
