@@ -37,6 +37,11 @@ export default function AthleteRegistration({ athletes, onUpdate }: Props) {
     setName('');
   };
 
+  const handleDelete = (athleteId: string) => {
+    const updatedAthletes = athletes.filter(athlete => athlete.id !== athleteId);
+    onUpdate(updatedAthletes);
+  };
+
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6">Cadastro de Atletas</h2>
@@ -71,6 +76,13 @@ export default function AthleteRegistration({ athletes, onUpdate }: Props) {
                 className="flex items-center justify-between bg-white p-3 rounded-md shadow-sm"
               >
                 <span>{athlete.nome}</span>
+                <button
+                  onClick={() => handleDelete(athlete.id)}
+                  className="text-red-600 hover:text-red-800 font-medium"
+                  title="Remover atleta"
+                >
+                  Remover
+                </button>
               </li>
             ))}
           </ul>

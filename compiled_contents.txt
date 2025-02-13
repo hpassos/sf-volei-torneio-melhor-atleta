@@ -3,20 +3,15 @@ import React, { useState, useEffect } from 'react';
 import { Trophy, Users, Swords, Vote, BarChart3, LayoutGrid } from 'lucide-react';
 import AthleteRegistration from './components/AthleteRegistration';
 import TeamFormation from './components/TeamFormation';
-import Swords from './components/Swords';
+import SwordsC from './components/Swords';
 import VotingSystem from './components/VotingSystem';
 import Dashboard from './components/Dashboard';
 import GroupStage from './components/GroupStage';
 import { fetchData, updateData } from './services/jsonbin';
 import type { Database } from './types';
+import { initialData } from './types';
 
-const initialData: Database = {
-  atletas: [],
-  duplas: [],
-  confrontos: [],
-  votacoes: {},
-  grupos: [],
-};
+
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -124,7 +119,7 @@ function App() {
             />
           )}
           {activeTab === 'matches' && (
-            <Swords
+            <SwordsC
               teams={data.duplas}
               matches={data.confrontos}
               onUpdate={(matches) => handleDataUpdate({ ...data, confrontos: matches })}
@@ -213,6 +208,14 @@ export interface Database {
   votacoes: RoundVotes;
   grupos: Group[];
 }
+
+export const initialData: Database = {
+  atletas: [],
+  duplas: [],
+  confrontos: [],
+  votacoes: {},
+  grupos: [],
+};
 
 === ./src\vite-env.d.ts ===
 /// <reference types="vite/client" />
@@ -326,7 +329,7 @@ const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 export default function Dashboard({ data }: Props) {
   const voteStats = useMemo(() => {
     const stats: Record<string, number> = {};
-    
+
     Object.values(data.votacoes).forEach(roundVotes => {
       roundVotes.forEach(vote => {
         stats[vote.voto] = (stats[vote.voto] || 0) + 1;
@@ -422,7 +425,7 @@ export default function Dashboard({ data }: Props) {
             <div className="bg-purple-50 p-4 rounded-lg">
               <p className="text-sm text-purple-600 mb-1">Total de Votos</p>
               <p className="text-2xl font-bold text-purple-900">
-                {Object.values(data.votacoes).reduce((acc, curr) => acc + curr.length, 0)}
+                {Object.values(data.votacoes).flat().reduce((acc, curr) => acc + curr.length, 0)}
               </p>
             </div>
           </div>
@@ -515,8 +518,8 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
         <button
           onClick={() => {
             const newMatches = groups.flatMap(group =>
-              group.teams.flatMap((team1, i) =>
-                group.teams.slice(i + 1).map(team2 => ({
+              group.teams?.flatMap((team1, i) =>
+                group.teams?.slice(i + 1).map(team2 => ({
                   id: crypto.randomUUID(),
                   rodada: group.name,
                   dupla1: `${team1.atleta1}/${team1.atleta2}`,
@@ -564,11 +567,11 @@ import type { Match, Team } from '../types';
 
 interface Props {
   teams: Team[];
-  matches: Match[];
+  matches?: Match[];
   onUpdate: (matches: Match[]) => void;
 }
 
-export default function Swords({ matches, onUpdate }: Props) {
+export default function SwordsC({ matches = [], onUpdate }: Props) {
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [tempScore, setTempScore] = useState({ dupla1: 0, dupla2: 0 });
 
@@ -599,10 +602,10 @@ export default function Swords({ matches, onUpdate }: Props) {
           {/* Grupos */}
           <div>
             <h3 className="text-lg font-bold mb-4">Partidas dos Grupos</h3>
-            {[...new Set(matches.map(m => m.rodada))].map(group => (
+            {[...new Set(matches?.map(m => m.rodada))].map(group => (
               <div key={group} className="mb-6">
                 <h4 className="font-medium mb-2">{group}</h4>
-                {matches.filter(m => m.rodada === group).map(match => (
+                {(matches || []).filter(m => m.rodada === group).map(match => (
                   <div
                     key={match.id}
                     className="bg-gray-50 p-3 rounded-md mb-2 cursor-pointer hover:bg-gray-100"
@@ -618,8 +621,8 @@ export default function Swords({ matches, onUpdate }: Props) {
                     </div>
                     {match.placar.dupla1 + match.placar.dupla2 > 0 && (
                       <div className={`text-center mt-2 font-medium ${isValidScore(match.placar.dupla1, match.placar.dupla2)
-                          ? 'text-green-600'
-                          : 'text-red-600'
+                        ? 'text-green-600'
+                        : 'text-red-600'
                         }`}>
                         {match.placar.dupla1} - {match.placar.dupla2}
                       </div>
@@ -636,7 +639,7 @@ export default function Swords({ matches, onUpdate }: Props) {
             {['Semifinal', 'Terceiro Lugar', 'Final'].map(stage => (
               <div key={stage} className="mb-6">
                 <h4 className="font-medium mb-2">{stage}</h4>
-                {matches.filter(m => m.rodada === stage).map(match => (
+                {(matches || []).filter(m => m.rodada === stage).map(match => (
                   <div
                     key={match.id}
                     className="bg-gray-50 p-3 rounded-md mb-2 cursor-pointer hover:bg-gray-100"
@@ -652,8 +655,8 @@ export default function Swords({ matches, onUpdate }: Props) {
                     </div>
                     {match.placar.dupla1 + match.placar.dupla2 > 0 && (
                       <div className={`text-center mt-2 font-medium ${isValidScore(match.placar.dupla1, match.placar.dupla2)
-                          ? 'text-green-600'
-                          : 'text-red-600'
+                        ? 'text-green-600'
+                        : 'text-red-600'
                         }`}>
                         {match.placar.dupla1} - {match.placar.dupla2}
                       </div>
@@ -991,6 +994,7 @@ export default function VotingSystem({ athletes, matches, votes, onUpdate }: Pro
 === ./src\services\jsonbin.ts ===
 import axios from 'axios';
 import type { Database } from '../types';
+import { initialData } from '../types.ts';
 
 const JSONBIN_API_KEY = '$2a$10$2EXYkBLG9hlyY8HZN7ABKOVwtBKpIsi86FZ72iU8.AJ4SFD92D3Wy'; // Replace with your JSONBin.io API key
 const BIN_ID = '67a12c15e41b4d34e4838ee6'; // Replace with your bin ID
@@ -1007,7 +1011,14 @@ const api = axios.create({
 export async function fetchData(): Promise<Database> {
   try {
     const response = await api.get(`/${BIN_ID}/latest`);
-    return response.data.record;
+    return {
+      ...initialData,
+      ...response.data.record,
+      atletas: response.data.record.atletas || [],
+      duplas: response.data.record.duplas || [],
+      confrontos: response.data.record.confrontos || [],
+      grupos: response.data.record.grupos || []
+    };
   } catch (error) {
     console.error('Error fetching data:', error);
     throw new Error(`Failed to fetch data: ${error.message}`);
