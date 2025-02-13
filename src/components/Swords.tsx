@@ -7,7 +7,7 @@ interface Props {
   onUpdate: (matches: Match[]) => void;
 }
 
-export default function Swords({ matches = [], onUpdate }: Props) {
+export default function SwordsC({ matches = [], onUpdate }: Props) {
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [tempScore, setTempScore] = useState({ dupla1: 0, dupla2: 0 });
 

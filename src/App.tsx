@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Users, SwordsI, Vote, BarChart3, LayoutGrid } from 'lucide-react';
+import { Trophy, Users, Swords, Vote, BarChart3, LayoutGrid } from 'lucide-react';
 import AthleteRegistration from './components/AthleteRegistration';
 import TeamFormation from './components/TeamFormation';
-import Swords from './components/Swords';
+import SwordsC from './components/Swords';
 import VotingSystem from './components/VotingSystem';
 import Dashboard from './components/Dashboard';
 import GroupStage from './components/GroupStage';
@@ -52,7 +52,7 @@ function App() {
     { id: 'athletes', label: 'Cadastro de Atletas', icon: Users },
     { id: 'teams', label: 'Formação de Duplas', icon: Trophy },
     { id: 'groups', label: 'Fase de Grupos', icon: LayoutGrid },
-    { id: 'matches', label: 'Confrontos', icon: SwordsI },
+    { id: 'matches', label: 'Confrontos', icon: Swords },
     { id: 'voting', label: 'Votação', icon: Vote },
   ];
 
@@ -118,7 +118,7 @@ function App() {
             />
           )}
           {activeTab === 'matches' && (
-            <Swords
+            <SwordsC
               teams={data.duplas}
               matches={data.confrontos}
               onUpdate={(matches) => handleDataUpdate({ ...data, confrontos: matches })}
