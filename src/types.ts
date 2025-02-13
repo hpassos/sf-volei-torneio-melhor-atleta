@@ -38,7 +38,7 @@ export interface Database {
   grupos: Group[];
 }
 
-const initialData: Database = {
+export const initialData: Database = {
   atletas: [],
   duplas: [],
   confrontos: [],

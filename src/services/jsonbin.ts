@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { Database } from '../types';
-import { initialData } from '../types';
+import { initialData } from '../types.ts';
 
 const JSONBIN_API_KEY = '$2a$10$2EXYkBLG9hlyY8HZN7ABKOVwtBKpIsi86FZ72iU8.AJ4SFD92D3Wy'; // Replace with your JSONBin.io API key
 const BIN_ID = '67a12c15e41b4d34e4838ee6'; // Replace with your bin ID
