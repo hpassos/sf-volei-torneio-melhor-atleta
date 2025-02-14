@@ -87,12 +87,17 @@ export default function TeamFormation({ athletes, teams, onUpdate }: Props) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Grupo
             </label>
-            <input
-              type="text"
+            <select
               value={grupo}
               onChange={(e) => setGrupo(e.target.value)}
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
+            >
+              <option value="">Selecione um grupo</option>
+              <option value="A">Grupo A</option>
+              <option value="B">Grupo B</option>
+              <option value="C">Grupo C</option>
+              <option value="D">Grupo D</option>
+            </select>
           </div>
         </div>
 
