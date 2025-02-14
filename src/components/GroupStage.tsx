@@ -97,6 +97,13 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
       return;
     }
 
+    // Verificar se as semifinais já foram geradas
+    const existingSemifinals = matches.filter(m => m.rodada === 'Semifinal');
+    if (existingSemifinals.length > 0) {
+      alert('As semifinais já foram geradas!');
+      return;
+    }
+
     // Coletar os melhores de cada grupo
     const allStandings = validGroups.map(group => ({
       group: group.name,
@@ -114,40 +121,24 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
       if (nextGroup) { // Só cria se tiver um grupo par para cruzar
         // 1º do grupo atual vs 2º do próximo grupo
         if (currentGroup.first && nextGroup.second) {
-          const exists = matches.some(m =>
-            m.rodada === 'Semifinal' &&
-            ((m.dupla1 === currentGroup.first && m.dupla2 === nextGroup.second) ||
-              (m.dupla1 === nextGroup.second && m.dupla2 === currentGroup.first))
-          );
-
-          if (!exists) {
-            newMatches.push({
-              id: crypto.randomUUID(),
-              rodada: 'Semifinal',
-              dupla1: currentGroup.first,
-              dupla2: nextGroup.second,
-              placar: { dupla1: 0, dupla2: 0 }
-            });
-          }
+          newMatches.push({
+            id: crypto.randomUUID(),
+            rodada: 'Semifinal',
+            dupla1: currentGroup.first,
+            dupla2: nextGroup.second,
+            placar: { dupla1: 0, dupla2: 0 }
+          });
         }
 
         // 1º do próximo grupo vs 2º do grupo atual
         if (nextGroup.first && currentGroup.second) {
-          const exists = matches.some(m =>
-            m.rodada === 'Semifinal' &&
-            ((m.dupla1 === nextGroup.first && m.dupla2 === currentGroup.second) ||
-              (m.dupla1 === currentGroup.second && m.dupla2 === nextGroup.first))
-          );
-
-          if (!exists) {
-            newMatches.push({
-              id: crypto.randomUUID(),
-              rodada: 'Semifinal',
-              dupla1: nextGroup.first,
-              dupla2: currentGroup.second,
-              placar: { dupla1: 0, dupla2: 0 }
-            });
-          }
+          newMatches.push({
+            id: crypto.randomUUID(),
+            rodada: 'Semifinal',
+            dupla1: nextGroup.first,
+            dupla2: currentGroup.second,
+            placar: { dupla1: 0, dupla2: 0 }
+          });
         }
       }
     }
@@ -160,6 +151,15 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
 
     if (semifinals.some(m => !isValidScore(m.placar.dupla1, m.placar.dupla2))) {
       alert('Complete todas as semifinais primeiro!');
+      return;
+    }
+
+    // Verificar se a final e terceiro lugar já foram gerados
+    const existingFinal = matches.some(m => m.rodada === 'Final');
+    const existingThirdPlace = matches.some(m => m.rodada === 'Terceiro Lugar');
+
+    if (existingFinal && existingThirdPlace) {
+      alert('A final e o terceiro lugar já foram gerados!');
       return;
     }
 
@@ -178,7 +178,7 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
 
     const newMatches: Match[] = [];
 
-    if (!matches.some(m => m.rodada === 'Final')) {
+    if (!existingFinal) {
       newMatches.push({
         id: crypto.randomUUID(),
         rodada: 'Final',
@@ -188,7 +188,7 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
       });
     }
 
-    if (!matches.some(m => m.rodada === 'Terceiro Lugar')) {
+    if (!existingThirdPlace) {
       newMatches.push({
         id: crypto.randomUUID(),
         rodada: 'Terceiro Lugar',
