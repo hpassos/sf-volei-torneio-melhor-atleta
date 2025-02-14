@@ -87,43 +87,68 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
       return;
     }
 
-    const getGroupStandings = (groupName: string) => {
-      const group = groups.find(g => g.name === groupName);
-      return group ? calculateStandings(group) : [];
-    };
+    const validGroups = groups.filter(group => {
+      const standings = calculateStandings(group);
+      return standings.length >= 2; // Pelo menos 2 times no grupo
+    });
 
-    const groupAStandings = getGroupStandings('A');
-    const groupBStandings = getGroupStandings('B');
-    const groupCStandings = getGroupStandings('C');
-    const groupDStandings = getGroupStandings('D');
+    if (validGroups.length < 2) {
+      alert('É necessário pelo menos 2 grupos com 2 times cada para gerar as semifinais!');
+      return;
+    }
 
-    const semifinalists = [
-      groupAStandings[0].team, // 1º A
-      groupBStandings[1].team, // 2º B
-      groupBStandings[0].team, // 1º B
-      groupAStandings[1].team, // 2º A
-      groupCStandings[0].team, // 1º C
-      groupDStandings[1].team, // 2º D
-      groupDStandings[0].team, // 1º D
-      groupCStandings[1].team  // 2º C
-    ];
+    // Coletar os melhores de cada grupo
+    const allStandings = validGroups.map(group => ({
+      group: group.name,
+      first: calculateStandings(group)[0]?.team,
+      second: calculateStandings(group)[1]?.team
+    }));
 
     const newMatches: Match[] = [];
-    for (let i = 0; i < semifinalists.length; i += 2) {
-      const exists = matches.some(m =>
-        m.rodada === 'Semifinal' &&
-        ((m.dupla1 === semifinalists[i] && m.dupla2 === semifinalists[i + 1]) ||
-          (m.dupla1 === semifinalists[i + 1] && m.dupla2 === semifinalists[i]))
-      );
 
-      if (!exists) {
-        newMatches.push({
-          id: crypto.randomUUID(),
-          rodada: 'Semifinal',
-          dupla1: semifinalists[i],
-          dupla2: semifinalists[i + 1],
-          placar: { dupla1: 0, dupla2: 0 }
-        });
+    // Gerar confrontos cruzados entre grupos
+    for (let i = 0; i < validGroups.length; i += 2) {
+      const currentGroup = allStandings[i];
+      const nextGroup = allStandings[i + 1];
+
+      if (nextGroup) { // Só cria se tiver um grupo par para cruzar
+        // 1º do grupo atual vs 2º do próximo grupo
+        if (currentGroup.first && nextGroup.second) {
+          const exists = matches.some(m =>
+            m.rodada === 'Semifinal' &&
+            ((m.dupla1 === currentGroup.first && m.dupla2 === nextGroup.second) ||
+              (m.dupla1 === nextGroup.second && m.dupla2 === currentGroup.first))
+          );
+
+          if (!exists) {
+            newMatches.push({
+              id: crypto.randomUUID(),
+              rodada: 'Semifinal',
+              dupla1: currentGroup.first,
+              dupla2: nextGroup.second,
+              placar: { dupla1: 0, dupla2: 0 }
+            });
+          }
+        }
+
+        // 1º do próximo grupo vs 2º do grupo atual
+        if (nextGroup.first && currentGroup.second) {
+          const exists = matches.some(m =>
+            m.rodada === 'Semifinal' &&
+            ((m.dupla1 === nextGroup.first && m.dupla2 === currentGroup.second) ||
+              (m.dupla1 === currentGroup.second && m.dupla2 === nextGroup.first))
+          );
+
+          if (!exists) {
+            newMatches.push({
+              id: crypto.randomUUID(),
+              rodada: 'Semifinal',
+              dupla1: nextGroup.first,
+              dupla2: currentGroup.second,
+              placar: { dupla1: 0, dupla2: 0 }
+            });
+          }
+        }
       }
     }
 
