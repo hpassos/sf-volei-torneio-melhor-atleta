@@ -186,6 +186,11 @@ export default function SwordsC({ teams, matches = [], onUpdate }: Props) {
       return;
     }
 
+    if (matches.some(m => m.rodada === 'Final')) {
+      alert('Terceiro lugar e a final já foram geradas!');
+      return;
+    }
+
     const winners = [];
     const losers = [];
     semifinals.forEach(match => {
