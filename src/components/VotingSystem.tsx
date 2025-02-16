@@ -9,17 +9,36 @@ interface Props {
 }
 
 export default function VotingSystem({ athletes, matches, votes, onUpdate }: Props) {
-  const [selectedRound, setSelectedRound] = useState('');
+  const [selectedMatchId, setSelectedMatchId] = useState('');
   const [voter, setVoter] = useState('');
   const [votedFor, setVotedFor] = useState('');
 
-  const rounds = [...new Set(matches.map((match) => match.rodada))];
+  // Obter atletas do confronto selecionado
+  const getMatchAthletes = () => {
+    if (!selectedMatchId) return [];
+
+    const match = matches.find(m => m.id === selectedMatchId);
+    if (!match) return [];
+
+    // Extrair nomes dos atletas das duplas
+    const allPlayers = [
+      ...match.dupla1.split('/'),
+      ...match.dupla2.split('/')
+    ];
+
+    return athletes.filter(athlete =>
+      allPlayers.includes(athlete.nome)
+    );
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRound || !voter || !votedFor) return;
+    if (!selectedMatchId || !voter || !votedFor) return;
 
-    const roundKey = selectedRound.toLowerCase().replace(/\s+/g, '-');
+    const match = matches.find(m => m.id === selectedMatchId);
+    if (!match) return;
+
+    const roundKey = match.rodada.toLowerCase().replace(/\s+/g, '-');
     const roundVotes = votes[roundKey] || [];
     const newVote = { votante: voter, voto: votedFor };
 
@@ -40,17 +59,17 @@ export default function VotingSystem({ athletes, matches, votes, onUpdate }: Pro
         <div className="grid grid-cols-1 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Rodada
+              Confronto
             </label>
             <select
-              value={selectedRound}
-              onChange={(e) => setSelectedRound(e.target.value)}
+              value={selectedMatchId}
+              onChange={(e) => setSelectedMatchId(e.target.value)}
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
-              <option value="">Selecione uma rodada</option>
-              {rounds.map((round) => (
-                <option key={round} value={round}>
-                  {round}
+              <option value="">Selecione um confronto</option>
+              {matches.map((match) => (
+                <option key={match.id} value={match.id}>
+                  {match.dupla1} vs {match.dupla2} ({match.rodada})
                 </option>
               ))}
             </select>
@@ -66,7 +85,7 @@ export default function VotingSystem({ athletes, matches, votes, onUpdate }: Pro
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
               <option value="">Selecione o votante</option>
-              {athletes.map((athlete) => (
+              {getMatchAthletes().map((athlete) => (
                 <option key={athlete.id} value={athlete.nome}>
                   {athlete.nome}
                 </option>
@@ -84,10 +103,14 @@ export default function VotingSystem({ athletes, matches, votes, onUpdate }: Pro
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
               <option value="">Selecione o atleta</option>
-              {athletes
+              {getMatchAthletes()
                 .filter((athlete) => athlete.nome !== voter)
                 .map((athlete) => (
-                  <option key={athlete.id} value={athlete.nome} disabled={athlete.nome === voter}>
+                  <option
+                    key={athlete.id}
+                    value={athlete.nome}
+                    disabled={athlete.nome === voter}
+                  >
                     {athlete.nome} {athlete.nome === voter ? '(Você)' : ''}
                   </option>
                 ))}
