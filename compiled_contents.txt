@@ -330,6 +330,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
+
 import type { Database } from '../types';
 
 interface Props {
@@ -348,10 +349,9 @@ export default function Dashboard({ data }: Props) {
       });
     });
 
-    return Object.entries(stats).map(([name, votes]) => ({
-      name,
-      votes,
-    }));
+    return Object.entries(stats)
+      .map(([name, votes]) => ({ name, votes }))
+      .sort((a, b) => b.votes - a.votes); // Ordena do mais votado para o menos
   }, [data.votacoes]);
 
   const matchStats = useMemo(() => {
@@ -384,68 +384,120 @@ export default function Dashboard({ data }: Props) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold mb-4">Votos por Atleta</h3>
+          <h3 className="text-lg font-semibold mb-4">Atletas Mais Votados</h3>
           <div className="flex justify-center">
-            <PieChart width={400} height={300}>
-              <Pie
-                data={voteStats}
-                dataKey="votes"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                label
-              >
-                {voteStats.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
+            <BarChart
+              width={500}
+              height={300}
+              data={voteStats}
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="name"
+                angle={-45}
+                textAnchor="end"
+                interval={0}
+                height={70}
+              />
+              <YAxis />
               <Tooltip />
               <Legend />
-            </PieChart>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold mb-4">Taxa de Vitória por Dupla</h3>
-          <div className="flex justify-center">
-            <BarChart width={400} height={300} data={matchStats}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="team" angle={-45} textAnchor="end" height={100} />
-              <YAxis label={{ value: 'Taxa de Vitória (%)', angle: -90, position: 'insideLeft' }} />
-              <Tooltip />
-              <Bar dataKey="winRate" fill="#4F46E5" />
+              <Bar
+                dataKey="votes"
+                name="Votos"
+                fill="#4F46E5"
+                barSize={20}
+              />
             </BarChart>
           </div>
+
+
+          <div className="mt-6 space-y-3">
+            {voteStats.slice(0, 3).map((athlete, index) => (
+              <div
+                key={athlete.name}
+                className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg"
+              >
+                <div className="flex items-center space-x-2">
+                  <span className="font-bold text-indigo-600">
+                    #{index + 1}
+                  </span>
+                  <span className="font-medium">{athlete.name}</span>
+                </div>
+                <span className="bg-indigo-600 text-white px-3 py-1 rounded-full text-sm">
+                  {athlete.votes} votos
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md md:col-span-2">
-          <h3 className="text-lg font-semibold mb-4">Estatísticas Gerais</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-indigo-50 p-4 rounded-lg">
-              <p className="text-sm text-indigo-600 mb-1">Total de Atletas</p>
-              <p className="text-2xl font-bold text-indigo-900">{data.atletas.length}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold mb-4">Votos por Atleta</h3>
+            <div className="flex justify-center">
+              <PieChart width={400} height={300}>
+                <Pie
+                  data={voteStats}
+                  dataKey="votes"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  label
+                >
+                  {voteStats.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
             </div>
-            <div className="bg-emerald-50 p-4 rounded-lg">
-              <p className="text-sm text-emerald-600 mb-1">Total de Duplas</p>
-              <p className="text-2xl font-bold text-emerald-900">{data.duplas.length}</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold mb-4">Taxa de Vitória por Dupla</h3>
+            <div className="flex justify-center">
+              <BarChart width={400} height={300} data={matchStats}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="team" angle={-45} textAnchor="end" height={100} />
+                <YAxis label={{ value: 'Taxa de Vitória (%)', angle: -90, position: 'insideLeft' }} />
+                <Tooltip />
+                <Bar dataKey="winRate" fill="#4F46E5" />
+              </BarChart>
             </div>
-            <div className="bg-amber-50 p-4 rounded-lg">
-              <p className="text-sm text-amber-600 mb-1">Partidas Realizadas</p>
-              <p className="text-2xl font-bold text-amber-900">{data.confrontos.length}</p>
-            </div>
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <p className="text-sm text-purple-600 mb-1">Total de Votos</p>
-              <p className="text-2xl font-bold text-purple-900">
-                {Object.values(data.votacoes).flat().reduce((acc, curr) => acc + curr.length, 0)}
-              </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md md:col-span-2">
+            <h3 className="text-lg font-semibold mb-4">Estatísticas Gerais</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-indigo-50 p-4 rounded-lg">
+                <p className="text-sm text-indigo-600 mb-1">Total de Atletas</p>
+                <p className="text-2xl font-bold text-indigo-900">{data.atletas.length}</p>
+              </div>
+              <div className="bg-emerald-50 p-4 rounded-lg">
+                <p className="text-sm text-emerald-600 mb-1">Total de Duplas</p>
+                <p className="text-2xl font-bold text-emerald-900">{data.duplas.length}</p>
+              </div>
+              <div className="bg-amber-50 p-4 rounded-lg">
+                <p className="text-sm text-amber-600 mb-1">Partidas Realizadas</p>
+                <p className="text-2xl font-bold text-amber-900">{data.confrontos.length}</p>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <p className="text-sm text-purple-600 mb-1">Total de Votos</p>
+                <p className="text-2xl font-bold text-purple-900">
+                  {Object.values(data.votacoes).flat().reduce((acc, curr) => acc + curr.length, 0)}
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   );
-}
+};
 
 === ./src\components\GroupStage.tsx ===
 import React, { useState, useEffect } from 'react';
@@ -929,6 +981,12 @@ export default function TeamFormation({ athletes, teams, onUpdate }: Props) {
     setGrupo('');
   };
 
+  // Função para remover uma dupla
+  const handleRemoveTeam = (teamId: number) => {
+    const updatedTeams = teams.filter(team => team.id !== teamId);
+    onUpdate(updatedTeams);
+  };
+
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6">Formação de Duplas</h2>
@@ -1019,7 +1077,15 @@ export default function TeamFormation({ athletes, teams, onUpdate }: Props) {
                     </span>
                   )}
                 </div>
-                <span className="text-gray-500">#{team.id}</span>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => handleRemoveTeam(team.id)}
+                    className="text-red-600 hover:text-red-800 font-medium"
+                    title="Remover dupla"
+                  >
+                    Remover
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -1041,17 +1107,36 @@ interface Props {
 }
 
 export default function VotingSystem({ athletes, matches, votes, onUpdate }: Props) {
-  const [selectedRound, setSelectedRound] = useState('');
+  const [selectedMatchId, setSelectedMatchId] = useState('');
   const [voter, setVoter] = useState('');
   const [votedFor, setVotedFor] = useState('');
 
-  const rounds = [...new Set(matches.map((match) => match.rodada))];
+  // Obter atletas do confronto selecionado
+  const getMatchAthletes = () => {
+    if (!selectedMatchId) return [];
+
+    const match = matches.find(m => m.id === selectedMatchId);
+    if (!match) return [];
+
+    // Extrair nomes dos atletas das duplas
+    const allPlayers = [
+      ...match.dupla1.split('/'),
+      ...match.dupla2.split('/')
+    ];
+
+    return athletes.filter(athlete =>
+      allPlayers.includes(athlete.nome)
+    );
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRound || !voter || !votedFor) return;
+    if (!selectedMatchId || !voter || !votedFor) return;
 
-    const roundKey = selectedRound.toLowerCase().replace(/\s+/g, '-');
+    const match = matches.find(m => m.id === selectedMatchId);
+    if (!match) return;
+
+    const roundKey = match.rodada.toLowerCase().replace(/\s+/g, '-');
     const roundVotes = votes[roundKey] || [];
     const newVote = { votante: voter, voto: votedFor };
 
@@ -1072,17 +1157,17 @@ export default function VotingSystem({ athletes, matches, votes, onUpdate }: Pro
         <div className="grid grid-cols-1 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Rodada
+              Confronto
             </label>
             <select
-              value={selectedRound}
-              onChange={(e) => setSelectedRound(e.target.value)}
+              value={selectedMatchId}
+              onChange={(e) => setSelectedMatchId(e.target.value)}
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
-              <option value="">Selecione uma rodada</option>
-              {rounds.map((round) => (
-                <option key={round} value={round}>
-                  {round}
+              <option value="">Selecione um confronto</option>
+              {matches.map((match) => (
+                <option key={match.id} value={match.id}>
+                  {match.dupla1} vs {match.dupla2} ({match.rodada})
                 </option>
               ))}
             </select>
@@ -1114,13 +1199,17 @@ export default function VotingSystem({ athletes, matches, votes, onUpdate }: Pro
               value={votedFor}
               onChange={(e) => setVotedFor(e.target.value)}
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              disabled={!selectedMatchId} // Desabilita se nenhum confronto for selecionado
             >
               <option value="">Selecione o atleta</option>
-              {athletes
-                .filter((athlete) => athlete.nome !== voter)
+              {getMatchAthletes()
+                .filter((athlete) => athlete.nome !== voter) // Remove o votante da lista de votáveis
                 .map((athlete) => (
-                  <option key={athlete.id} value={athlete.nome} disabled={athlete.nome === voter}>
-                    {athlete.nome} {athlete.nome === voter ? '(Você)' : ''}
+                  <option
+                    key={athlete.id}
+                    value={athlete.nome}
+                  >
+                    {athlete.nome}
                   </option>
                 ))}
             </select>
@@ -1130,6 +1219,7 @@ export default function VotingSystem({ athletes, matches, votes, onUpdate }: Pro
         <button
           type="submit"
           className="mt-4 w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          disabled={!selectedMatchId || !voter || !votedFor} // Desabilita o botão se faltar algum campo
         >
           Registrar Voto
         </button>

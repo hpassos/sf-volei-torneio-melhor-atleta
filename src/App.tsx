@@ -10,8 +10,6 @@ import { fetchData, updateData } from './services/jsonbin';
 import type { Database } from './types';
 import { initialData } from './types';
 
-
-
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [data, setData] = useState<Database>(initialData);
@@ -75,16 +73,17 @@ function App() {
         </div>
       </header>
 
+      {/* Abas com rolagem horizontal */}
       <nav className="bg-white shadow-md">
         <div className="container mx-auto px-4">
-          <div className="flex space-x-1">
+          <div className="flex overflow-x-auto no-scrollbar">
             {tabs.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`flex items-center space-x-2 px-4 py-3 font-medium transition-colors ${activeTab === id
-                  ? 'border-b-2 border-indigo-600 text-indigo-600'
-                  : 'text-gray-600 hover:text-indigo-600'
+                className={`flex-shrink-0 flex items-center space-x-2 px-4 py-3 font-medium transition-colors ${activeTab === id
+                    ? 'border-b-2 border-indigo-600 text-indigo-600'
+                    : 'text-gray-600 hover:text-indigo-600'
                   }`}
               >
                 <Icon className="h-5 w-5" />
