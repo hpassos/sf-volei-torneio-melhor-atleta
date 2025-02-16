@@ -38,13 +38,13 @@ export default function VotingSystem({ athletes, matches, votes, onUpdate }: Pro
     const match = matches.find(m => m.id === selectedMatchId);
     if (!match) return;
 
-    const roundKey = match.rodada.toLowerCase().replace(/\s+/g, '-');
-    const roundVotes = votes[roundKey] || [];
+    // Utiliza o id do confronto como chave
+    const matchVotes = votes[selectedMatchId] || [];
     const newVote = { votante: voter, voto: votedFor };
 
     onUpdate({
       ...votes,
-      [roundKey]: [...roundVotes, newVote],
+      [selectedMatchId]: [...matchVotes, newVote],
     });
 
     setVoter('');
@@ -101,16 +101,13 @@ export default function VotingSystem({ athletes, matches, votes, onUpdate }: Pro
               value={votedFor}
               onChange={(e) => setVotedFor(e.target.value)}
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              disabled={!selectedMatchId} // Desabilita se nenhum confronto for selecionado
+              disabled={!selectedMatchId}
             >
               <option value="">Selecione o atleta</option>
               {getMatchAthletes()
-                .filter((athlete) => athlete.nome !== voter) // Remove o votante da lista de votáveis
+                .filter((athlete) => athlete.nome !== voter)
                 .map((athlete) => (
-                  <option
-                    key={athlete.id}
-                    value={athlete.nome}
-                  >
+                  <option key={athlete.id} value={athlete.nome}>
                     {athlete.nome}
                   </option>
                 ))}
@@ -121,7 +118,7 @@ export default function VotingSystem({ athletes, matches, votes, onUpdate }: Pro
         <button
           type="submit"
           className="mt-4 w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-          disabled={!selectedMatchId || !voter || !votedFor} // Desabilita o botão se faltar algum campo
+          disabled={!selectedMatchId || !voter || !votedFor}
         >
           Registrar Voto
         </button>
@@ -133,23 +130,28 @@ export default function VotingSystem({ athletes, matches, votes, onUpdate }: Pro
           <p className="text-gray-500">Nenhum voto registrado</p>
         ) : (
           <div className="space-y-6">
-            {Object.entries(votes).map(([round, roundVotes]) => (
-              <div key={round} className="bg-white p-4 rounded-md shadow-sm">
-                <h4 className="font-medium mb-3">{round.replace(/-/g, ' ')}</h4>
-                <ul className="space-y-2">
-                  {roundVotes.map((vote, index) => (
-                    <li
-                      key={`${round}-${index}`}
-                      className="flex justify-between items-center text-sm"
-                    >
-                      <span className="text-gray-600">{vote.votante}</span>
-                      <span className="font-medium">votou em</span>
-                      <span className="text-indigo-600">{vote.voto}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            {Object.entries(votes).map(([matchId, matchVotes]) => {
+              const match = matches.find(m => m.id === matchId);
+              return (
+                <div key={matchId} className="bg-white p-4 rounded-md shadow-sm">
+                  <h4 className="font-medium mb-3">
+                    {match ? `${match.dupla1} vs ${match.dupla2} (${match.rodada})` : matchId}
+                  </h4>
+                  <ul className="space-y-2">
+                    {matchVotes.map((vote, index) => (
+                      <li
+                        key={`${matchId}-${index}`}
+                        className="flex justify-between items-center text-sm"
+                      >
+                        <span className="text-gray-600">{vote.votante}</span>
+                        <span className="font-medium">votou em</span>
+                        <span className="text-indigo-600">{vote.voto}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
