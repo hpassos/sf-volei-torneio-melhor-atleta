@@ -267,36 +267,39 @@ export default function SwordsC({ teams, matches = [], onUpdate }: Props) {
           {/* Partidas dos Grupos */}
           <div>
             <h3 className="text-lg font-bold mb-4">Partidas dos Grupos</h3>
-            {[...new Set(matches?.map(m => m.rodada))].map(group => (
-              <div key={group} className="mb-6">
-                <h4 className="font-medium mb-2">{group}</h4>
-                {(matches || []).filter(m => m.rodada === group).map(match => (
-                  <div
-                    key={match.id}
-                    className="bg-gray-50 p-3 rounded-md mb-2 cursor-pointer hover:bg-gray-100"
-                    onClick={() => {
-                      setSelectedMatch(match);
-                      setTempScore(match.placar);
-                    }}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="flex-1 text-right">{match.dupla1}</span>
-                      <span className="mx-3 font-bold">vs</span>
-                      <span className="flex-1 text-left">{match.dupla2}</span>
-                    </div>
-                    {match.placar.dupla1 + match.placar.dupla2 > 0 && (
-                      <div className={`text-center mt-2 font-medium ${isValidScore(match.placar.dupla1, match.placar.dupla2)
-                        ? 'text-green-600'
-                        : 'text-red-600'
-                        }`}>
-                        {match.placar.dupla1} - {match.placar.dupla2}
+            {[...new Set(matches?.map(m => m.rodada))]
+              .filter(rodada => !['Semifinal', 'Terceiro Lugar', 'Final'].includes(rodada))
+              .map(group => (
+                <div key={group} className="mb-6">
+                  <h4 className="font-medium mb-2">{group}</h4>
+                  {(matches || []).filter(m => m.rodada === group).map(match => (
+                    <div
+                      key={match.id}
+                      className="bg-gray-50 p-3 rounded-md mb-2 cursor-pointer hover:bg-gray-100"
+                      onClick={() => {
+                        setSelectedMatch(match);
+                        setTempScore(match.placar);
+                      }}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="flex-1 text-right">{match.dupla1}</span>
+                        <span className="mx-3 font-bold">vs</span>
+                        <span className="flex-1 text-left">{match.dupla2}</span>
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ))}
+                      {match.placar.dupla1 + match.placar.dupla2 > 0 && (
+                        <div className={`text-center mt-2 font-medium ${isValidScore(match.placar.dupla1, match.placar.dupla2)
+                          ? 'text-green-600'
+                          : 'text-red-600'
+                          }`}>
+                          {match.placar.dupla1} - {match.placar.dupla2}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ))}
           </div>
+
 
           {/* Fases Eliminatórias */}
           <div>
