@@ -85,7 +85,7 @@ export default function VotingSystem({ athletes, matches, votes, onUpdate }: Pro
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
               <option value="">Selecione o votante</option>
-              {getMatchAthletes().map((athlete) => (
+              {athletes.map((athlete) => (
                 <option key={athlete.id} value={athlete.nome}>
                   {athlete.nome}
                 </option>
@@ -101,17 +101,17 @@ export default function VotingSystem({ athletes, matches, votes, onUpdate }: Pro
               value={votedFor}
               onChange={(e) => setVotedFor(e.target.value)}
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              disabled={!selectedMatchId} // Desabilita se nenhum confronto for selecionado
             >
               <option value="">Selecione o atleta</option>
               {getMatchAthletes()
-                .filter((athlete) => athlete.nome !== voter)
+                .filter((athlete) => athlete.nome !== voter) // Remove o votante da lista de votáveis
                 .map((athlete) => (
                   <option
                     key={athlete.id}
                     value={athlete.nome}
-                    disabled={athlete.nome === voter}
                   >
-                    {athlete.nome} {athlete.nome === voter ? '(Você)' : ''}
+                    {athlete.nome}
                   </option>
                 ))}
             </select>
@@ -121,6 +121,7 @@ export default function VotingSystem({ athletes, matches, votes, onUpdate }: Pro
         <button
           type="submit"
           className="mt-4 w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          disabled={!selectedMatchId || !voter || !votedFor} // Desabilita o botão se faltar algum campo
         >
           Registrar Voto
         </button>
