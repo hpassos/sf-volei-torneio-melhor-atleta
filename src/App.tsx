@@ -47,11 +47,11 @@ function App() {
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'voting', label: 'Votação', icon: Vote },
     { id: 'athletes', label: 'Cadastro de Atletas', icon: Users },
     { id: 'teams', label: 'Formação de Duplas', icon: Trophy },
     { id: 'groups', label: 'Fase de Grupos', icon: LayoutGrid },
     { id: 'matches', label: 'Confrontos', icon: Swords },
-    { id: 'voting', label: 'Votação', icon: Vote },
   ];
 
   if (loading) {
@@ -70,7 +70,7 @@ function App() {
       <header className="bg-indigo-600 text-white py-6 shadow-lg">
         <div className="container mx-auto px-4">
           <h1 className="text-3xl font-bold">SF Vôlei</h1>
-          <h2 className="text-3xl font-bold">1º Torneio Interno</h2>
+          <h3 className="text-2xl font-bold">1º Torneio Interno</h3>
         </div>
       </header>
 

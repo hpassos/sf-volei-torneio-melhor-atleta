@@ -79,7 +79,7 @@ export default function Dashboard({ data }: Props) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Seção de Atletas Mais Votados */}
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold mb-4">Atletas Mais Votados</h3>
+          <h3 className="text-lg font-semibold mb-4">Atletas + completos</h3>
           <div className="mt-6 space-y-3">
             {voteStats.slice(0, 3).map((athlete, index) => (
               <div
@@ -102,7 +102,7 @@ export default function Dashboard({ data }: Props) {
 
         {/* Nova Seção: Atletas que Mais Votaram */}
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold mb-4">Atletas que Mais Votaram</h3>
+          <h3 className="text-lg font-semibold mb-4">Atletas que votaram</h3>
 
           <div className="space-y-3">
             {votersStats.slice(0, 3).map((voter, index) => (
