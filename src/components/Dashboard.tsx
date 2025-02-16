@@ -124,21 +124,7 @@ export default function Dashboard({ data }: Props) {
           </div>
         </div>
 
-        {/* Seção de Taxa de Vitória */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold mb-4">Taxa de Vitória por Dupla</h3>
-          <div className="flex justify-center">
-            <BarChart width={400} height={300} data={matchStats}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="team" angle={-45} textAnchor="end" height={100} />
-              <YAxis label={{ value: 'Taxa de Vitória (%)', angle: -90, position: 'insideLeft' }} />
-              <Tooltip />
-              <Bar dataKey="winRate" fill="#4F46E5" />
-            </BarChart>
-          </div>
 
-
-        </div>
       </div>
     </div>
   );
