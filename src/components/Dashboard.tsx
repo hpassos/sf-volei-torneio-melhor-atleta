@@ -6,9 +6,14 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend, ResponsiveContainer,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line
 } from 'recharts';
-
 import type { Database } from '../types';
 
 interface Props {
@@ -18,247 +23,177 @@ interface Props {
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
 export default function Dashboard({ data }: Props) {
-  // Estatísticas de atletas mais votados
-  const voteStats = useMemo(() => {
-    const stats: Record<string, number> = {};
+  // Estatísticas existentes
+  const [voteStats, votersStats, matchStats] = useMemo(() => {
+    const voteStats: Record<string, number> = {};
+    const votersStats: Record<string, number> = {};
 
     Object.values(data.votacoes).forEach(roundVotes => {
       roundVotes.forEach(vote => {
-        stats[vote.voto] = (stats[vote.voto] || 0) + 1;
+        voteStats[vote.voto] = (voteStats[vote.voto] || 0) + 1;
+        votersStats[vote.votante] = (votersStats[vote.votante] || 0) + 1;
       });
     });
 
-    return Object.entries(stats)
-      .map(([name, votes]) => ({ name, votes }))
-      .sort((a, b) => b.votes - a.votes);
-  }, [data.votacoes]);
-
-  // Estatísticas de atletas que mais votaram
-  const votersStats = useMemo(() => {
-    const stats: Record<string, number> = {};
-
-    Object.values(data.votacoes).forEach(roundVotes => {
-      roundVotes.forEach(vote => {
-        stats[vote.votante] = (stats[vote.votante] || 0) + 1;
-      });
-    });
-
-    return Object.entries(stats)
-      .map(([name, votes]) => ({ name, votes }))
-      .sort((a, b) => b.votes - a.votes);
-  }, [data.votacoes]);
-
-  const matchStats = useMemo(() => {
-    const stats: Record<string, { wins: number; totalGames: number }> = {};
-
-    data.confrontos.forEach(match => {
+    const matchStats = data.confrontos.reduce((acc, match) => {
       const winner = match.placar.dupla1 > match.placar.dupla2 ? match.dupla1 : match.dupla2;
-      const teams = [match.dupla1, match.dupla2];
-
-      teams.forEach(team => {
-        if (!stats[team]) {
-          stats[team] = { wins: 0, totalGames: 0 };
-        }
-        stats[team].totalGames++;
-        if (team === winner) {
-          stats[team].wins++;
-        }
+      [match.dupla1, match.dupla2].forEach(team => {
+        acc[team] = acc[team] || { wins: 0, totalGames: 0 };
+        acc[team].totalGames++;
+        if (team === winner) acc[team].wins++;
       });
+      return acc;
+    }, {} as Record<string, { wins: number; totalGames: number }>);
+
+    return [
+      Object.entries(voteStats).map(([name, votes]) => ({ name, votes })),
+      Object.entries(votersStats).map(([name, votes]) => ({ name, votes })),
+      Object.entries(matchStats).map(([team, { wins, totalGames }]) => ({
+        team,
+        winRate: (wins / totalGames) * 100
+      }))
+    ];
+  }, [data]);
+
+  // Novas estatísticas
+  const [groupStandings, individualStats, matchAnalysis] = useMemo(() => {
+    // Classificação por grupo
+    const groupStandings = data.duplas.reduce((acc, dupla) => {
+      const groupKey = dupla.grupo;
+      const teamName = `${dupla.atleta1}/${dupla.atleta2}`;
+
+      const wins = data.confrontos.filter(c =>
+        (c.dupla1 === teamName && c.placar.dupla1 > c.placar.dupla2) ||
+        (c.dupla2 === teamName && c.placar.dupla2 > c.placar.dupla1)
+      ).length;
+
+      acc[groupKey] = acc[groupKey] || [];
+      acc[groupKey].push({
+        team: teamName,
+        wins,
+        points: wins * 3,
+        pointsFor: data.confrontos.reduce((sum, c) =>
+          sum + (c.dupla1 === teamName ? c.placar.dupla1 : c.dupla2 === teamName ? c.placar.dupla2 : 0), 0
+        )
+      });
+      return acc;
+    }, {} as Record<string, Array<{ team: string; wins: number; points: number; pointsFor: number }>>);
+
+    // Estatísticas individuais
+    const individualStats = data.atletas.map(athlete => {
+      const totalWins = data.confrontos.filter(c =>
+        c.dupla1.includes(athlete.nome) && c.placar.dupla1 > c.placar.dupla2 ||
+        c.dupla2.includes(athlete.nome) && c.placar.dupla2 > c.placar.dupla1
+      ).length;
+
+      return {
+        name: athlete.nome,
+        wins: totalWins,
+        votesReceived: voteStats.find(v => v.name === athlete.nome)?.votes || 0
+      };
     });
 
-    return Object.entries(stats).map(([team, { wins, totalGames }]) => ({
-      team,
-      winRate: (wins / totalGames) * 100,
+    // Análise de partidas
+    const matchAnalysis = data.confrontos.map(match => ({
+      ...match,
+      totalPoints: match.placar.dupla1 + match.placar.dupla2
     }));
-  }, [data.confrontos]);
+
+    return [groupStandings, individualStats, matchAnalysis];
+  }, [data, voteStats]);
+
+  // Visualização de votos
+  const votingNetwork = useMemo(() => {
+    const nodes = data.atletas.map(athlete => ({ id: athlete.nome }));
+    const links = Object.values(data.votacoes).flat().map(vote => ({
+      source: vote.votante,
+      target: vote.voto
+    }));
+    return { nodes, links };
+  }, [data]);
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">Resultados</h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Seção de Atletas Mais Votados */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold mb-4">Atletas + completos</h3>
-          <div className="mt-6 space-y-3">
-            {voteStats.slice(0, 3).map((athlete, index) => (
-              <div
-                key={athlete.name}
-                className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg"
-              >
-                <div className="flex items-center space-x-2">
-                  <span className="font-bold text-indigo-600">
-                    #{index + 1}
-                  </span>
-                  <span className="font-medium">{athlete.name}</span>
-                </div>
-                <span className="bg-indigo-600 text-white px-3 py-1 rounded-full text-sm">
-                  {athlete.votes} votos
-                </span>
-              </div>
-            ))}
+    <div className="p-6 space-y-8">
+      {/* Seção de Grupos */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {Object.entries(groupStandings).map(([group, standings]) => (
+          <div key={group} className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-lg font-semibold mb-4">Grupo {group}</h3>
+            <table className="w-full">
+              <thead>
+                <tr className="text-left border-b">
+                  <th className="pb-2">Dupla</th>
+                  <th className="pb-2">Vitórias</th>
+                  <th className="pb-2">Pontos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {standings.sort((a, b) => b.points - a.points).map((team) => (
+                  <tr key={team.team} className="border-b">
+                    <td className="py-2">{team.team}</td>
+                    <td className="py-2">{team.wins}</td>
+                    <td className="py-2 font-medium">{team.points}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+        ))}
+      </div>
 
-        {/* Nova Seção: Atletas que Mais Votaram */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold mb-4">Atletas que votaram</h3>
-
-          <div className="space-y-3">
-            {votersStats.slice(0, 3).map((voter, index) => (
-              <div
-                key={voter.name}
-                className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg"
-              >
-                <div className="flex items-center space-x-2">
-                  <span className="font-bold text-emerald-600">
-                    #{index + 1}
-                  </span>
-                  <span className="font-medium">{voter.name}</span>
-                </div>
-                <span className="bg-emerald-600 text-white px-3 py-1 rounded-full text-sm">
-                  {voter.votes} votos
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Seção de Taxa de Vitória */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold mb-4">Taxa de Vitória por Dupla</h3>
-          <div className="flex justify-center">
-            <BarChart width={400} height={300} data={matchStats}>
+      {/* Análise de Partidas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-lg font-semibold mb-4">Performance Ofensiva</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={matchAnalysis}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="team" angle={-45} textAnchor="end" height={100} />
-              <YAxis label={{ value: 'Taxa de Vitória (%)', angle: -90, position: 'insideLeft' }} />
+              <XAxis dataKey="rodada" />
+              <YAxis />
               <Tooltip />
-              <Bar dataKey="winRate" fill="#4F46E5" />
+              <Bar dataKey="totalPoints" fill="#4F46E5" />
             </BarChart>
-          </div>
-          <div className="bg-white p-8 rounded-xl shadow-lg transition-all hover:shadow-xl">
-            <h3 className="text-xl font-bold mb-6 text-gray-800 border-b-2 border-indigo-100 pb-2">
-              Desempenho das Duplas - Taxa de Vitória
-            </h3>
-            <div className="flex justify-center items-center">
-              <BarChart
-                width={500}
-                height={400}
-                data={matchStats}
-                margin={{ top: 20, right: 30, left: 50, bottom: 70 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          </ResponsiveContainer>
+        </div>
 
-                <XAxis
-                  dataKey="team"
-                  angle={-30}
-                  textAnchor="end"
-                  tick={{ fill: '#6b7280' }}
-                  tickLine={{ stroke: '#d1d5db' }}
-                  interval={0}
-                  label={{
-                    value: 'Duplas',
-                    position: 'bottom',
-                    offset: 60,
-                    fill: '#374151',
-                    fontSize: 13
-                  }}
-                />
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-lg font-semibold mb-4">Relação Vitórias-Votos</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+              <CartesianGrid />
+              <XAxis type="number" dataKey="votesReceived" name="Votos Recebidos" />
+              <YAxis type="number" dataKey="wins" name="Vitórias" />
+              <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+              <Scatter data={individualStats} fill="#10B981" />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
 
-                <YAxis
-                  tick={{ fill: '#6b7280' }}
-                  tickLine={{ stroke: '#d1d5db' }}
-                  label={{
-                    value: 'Taxa de Vitória (%)',
-                    angle: -90,
-                    position: 'insideLeft',
-                    offset: 20,
-                    fill: '#374151',
-                    fontSize: 13
-                  }}
-                />
+      {/* Linha do Tempo do Torneio */}
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h3 className="text-lg font-semibold mb-4">Progressão do Torneio</h3>
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={matchAnalysis}>
+            <Line type="monotone" dataKey="totalPoints" stroke="#F59E0B" />
+            <CartesianGrid stroke="#eee" strokeDasharray="5 5" />
+            <XAxis dataKey="rodada" />
+            <YAxis />
+            <Tooltip />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
 
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                    border: 'none',
-                    background: '#ffffff'
-                  }}
-                  formatter={(value) => [`${value}%`, 'Taxa de Vitória']}
-                />
-
-                <Bar
-                  dataKey="winRate"
-                  name="Taxa de Vitória"
-                  fill="url(#gradientBar)" // Efeito gradiente
-                  radius={[4, 4, 0, 0]}
-                  animationDuration={800}
-                >
-                  {/* Efeito de gradiente para as barras */}
-                  <linearGradient id="gradientBar" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6366f1" />
-                    <stop offset="100%" stopColor="#4f46e5" />
-                  </linearGradient>
-                </Bar>
-
-                <Legend
-                  wrapperStyle={{
-                    paddingTop: '20px',
-                    fontSize: '14px',
-                    color: '#374151'
-                  }}
-                />
-              </BarChart>
+      {/* Visualização de Votos (Exemplo com gráfico de rede simples) */}
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h3 className="text-lg font-semibold mb-4">Rede de Votos</h3>
+        <div className="grid grid-cols-3 gap-4">
+          {votingNetwork.links.map((link, index) => (
+            <div key={index} className="p-2 bg-gray-50 rounded">
+              <span className="text-indigo-600">{link.source}</span> →
+              <span className="text-emerald-600">{link.target}</span>
             </div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-xl font-bold text-center mb-6">Taxa de Vitória por Dupla</h3>
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart
-                data={matchStats}
-                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-              >
-                <defs>
-                  <linearGradient id="gradientWin" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4F46E5" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="#4F46E5" stopOpacity={0.2} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                <XAxis
-                  dataKey="team"
-                  angle={-45}
-                  textAnchor="end"
-                  interval={0}
-                  height={80}
-                />
-                <YAxis
-                  label={{
-                    value: 'Taxa de Vitória (%)',
-                    angle: -90,
-                    position: 'insideLeft',
-                    offset: 10,
-                  }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    boxShadow: '0px 0px 10px rgba(0,0,0,0.1)',
-                  }}
-                />
-                <Bar
-                  dataKey="winRate"
-                  fill="url(#gradientWin)"
-                  radius={[8, 8, 0, 0]}
-                  barSize={50}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
+          ))}
         </div>
       </div>
     </div>
