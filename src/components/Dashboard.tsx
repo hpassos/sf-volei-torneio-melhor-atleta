@@ -6,7 +6,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
+  Legend, ResponsiveContainer,
 } from 'recharts';
 
 import type { Database } from '../types';
@@ -136,6 +136,129 @@ export default function Dashboard({ data }: Props) {
               <Bar dataKey="winRate" fill="#4F46E5" />
             </BarChart>
           </div>
+          <div className="bg-white p-8 rounded-xl shadow-lg transition-all hover:shadow-xl">
+            <h3 className="text-xl font-bold mb-6 text-gray-800 border-b-2 border-indigo-100 pb-2">
+              Desempenho das Duplas - Taxa de Vitória
+            </h3>
+            <div className="flex justify-center items-center">
+              <BarChart
+                width={500}
+                height={400}
+                data={matchStats}
+                margin={{ top: 20, right: 30, left: 50, bottom: 70 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+
+                <XAxis
+                  dataKey="team"
+                  angle={-30}
+                  textAnchor="end"
+                  tick={{ fill: '#6b7280' }}
+                  tickLine={{ stroke: '#d1d5db' }}
+                  interval={0}
+                  label={{
+                    value: 'Duplas',
+                    position: 'bottom',
+                    offset: 60,
+                    fill: '#374151',
+                    fontSize: 13
+                  }}
+                />
+
+                <YAxis
+                  tick={{ fill: '#6b7280' }}
+                  tickLine={{ stroke: '#d1d5db' }}
+                  label={{
+                    value: 'Taxa de Vitória (%)',
+                    angle: -90,
+                    position: 'insideLeft',
+                    offset: 20,
+                    fill: '#374151',
+                    fontSize: 13
+                  }}
+                />
+
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    border: 'none',
+                    background: '#ffffff'
+                  }}
+                  formatter={(value) => [`${value}%`, 'Taxa de Vitória']}
+                />
+
+                <Bar
+                  dataKey="winRate"
+                  name="Taxa de Vitória"
+                  fill="url(#gradientBar)" // Efeito gradiente
+                  radius={[4, 4, 0, 0]}
+                  animationDuration={800}
+                >
+                  {/* Efeito de gradiente para as barras */}
+                  <linearGradient id="gradientBar" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#6366f1" />
+                    <stop offset="100%" stopColor="#4f46e5" />
+                  </linearGradient>
+                </Bar>
+
+                <Legend
+                  wrapperStyle={{
+                    paddingTop: '20px',
+                    fontSize: '14px',
+                    color: '#374151'
+                  }}
+                />
+              </BarChart>
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-xl font-bold text-center mb-6">Taxa de Vitória por Dupla</h3>
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart
+                data={matchStats}
+                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+              >
+                <defs>
+                  <linearGradient id="gradientWin" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#4F46E5" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="#4F46E5" stopOpacity={0.2} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                <XAxis
+                  dataKey="team"
+                  angle={-45}
+                  textAnchor="end"
+                  interval={0}
+                  height={80}
+                />
+                <YAxis
+                  label={{
+                    value: 'Taxa de Vitória (%)',
+                    angle: -90,
+                    position: 'insideLeft',
+                    offset: 10,
+                  }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    boxShadow: '0px 0px 10px rgba(0,0,0,0.1)',
+                  }}
+                />
+                <Bar
+                  dataKey="winRate"
+                  fill="url(#gradientWin)"
+                  radius={[8, 8, 0, 0]}
+                  barSize={50}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
         </div>
       </div>
     </div>
