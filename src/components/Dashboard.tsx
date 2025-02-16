@@ -165,5 +165,6 @@ export default function Dashboard({ data }: Props) {
           </div>
         </div>
       </div>
-      );
-}
+    </div>
+  );
+};
