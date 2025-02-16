@@ -89,6 +89,8 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
     });
   };
 
+  // As funções de geração de semifinais e finais permanecem no código,
+  // mas como os botões foram removidos, elas não são acionadas pela interface.
   const generateSemifinals = () => {
     if (!allGroupMatchesCompleted()) {
       alert('Complete todos os jogos da fase de grupos primeiro!');
@@ -206,55 +208,6 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
   return (
     <div className="p-4 sm:p-6">
       <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-        <div className="flex flex-wrap gap-4 mb-6">
-          <button
-            onClick={() => {
-              const existingMatches = new Set(
-                matches.map(m => `${m.rodada}|${m.dupla1}|${m.dupla2}`)
-              );
-
-              const newMatches = groups.flatMap(group =>
-                group.teams?.flatMap((team1, i) =>
-                  group.teams?.slice(i + 1).map(team2 => {
-                    const dupla1 = `${team1.atleta1}/${team1.atleta2}`;
-                    const dupla2 = `${team2.atleta1}/${team2.atleta2}`;
-                    const matchKey = `${group.name}|${dupla1}|${dupla2}`;
-
-                    if (!existingMatches.has(matchKey)) {
-                      return {
-                        id: crypto.randomUUID(),
-                        rodada: group.name,
-                        dupla1,
-                        dupla2,
-                        placar: { dupla1: 0, dupla2: 0 }
-                      };
-                    }
-                    return null;
-                  }).filter(Boolean)
-                ));
-
-              onUpdateMatches([...matches, ...newMatches]);
-            }}
-            className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-xs sm:text-base"
-          >
-            Gerar Confrontos dos Grupos
-          </button>
-
-          <button
-            onClick={generateSemifinals}
-            className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs sm:text-base"
-          >
-            Gerar Semifinais
-          </button>
-
-          <button
-            onClick={generateFinalMatches}
-            className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-xs sm:text-base"
-          >
-            Gerar Final e 3º Lugar
-          </button>
-        </div>
-
         {groups.map(group => (
           <div key={group.id} className="mb-6">
             <h3 className="font-bold mb-2 text-base sm:text-lg">Grupo {group.name}</h3>
