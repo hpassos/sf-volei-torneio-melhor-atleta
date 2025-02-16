@@ -45,3 +45,15 @@ export const initialData: Database = {
   votacoes: {},
   grupos: [],
 };
+
+export interface MatchAnalysis {
+  id: string;
+  rodada: string;
+  totalPoints: number;
+}
+
+export interface IndividualStats {
+  name: string;
+  wins: number;
+  votesReceived: number;
+}
