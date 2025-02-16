@@ -74,7 +74,7 @@ export default function Dashboard({ data }: Props) {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-6">Dashboard</h2>
+      <h2 className="text-2xl font-bold mb-6">Resultados</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Seção de Atletas Mais Votados */}
@@ -103,31 +103,7 @@ export default function Dashboard({ data }: Props) {
         {/* Nova Seção: Atletas que Mais Votaram */}
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold mb-4">Atletas que Mais Votaram</h3>
-          <div className="flex justify-center mb-4">
-            <BarChart
-              width={500}
-              height={300}
-              data={votersStats.slice(0, 5)}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="name"
-                angle={-45}
-                textAnchor="end"
-                height={70}
-              />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar
-                dataKey="votes"
-                name="Votos realizados"
-                fill="#10B981"
-                barSize={20}
-              />
-            </BarChart>
-          </div>
+
           <div className="space-y-3">
             {votersStats.slice(0, 3).map((voter, index) => (
               <div

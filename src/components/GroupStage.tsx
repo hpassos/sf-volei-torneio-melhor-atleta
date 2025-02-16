@@ -42,25 +42,32 @@ export default function GroupStage({ teams, matches, onUpdateMatches }: Props) {
       [key: string]: { wins: number; pointsFor: number; pointsAgainst: number }
     } = {};
 
+    // Inicializa as estatísticas para todas as duplas do grupo
     group.teams.forEach(team => {
       const teamName = `${team.atleta1}/${team.atleta2}`;
       standings[teamName] = { wins: 0, pointsFor: 0, pointsAgainst: 0 };
     });
 
+    // Processa os confrontos do grupo
     matches.filter(m => m.rodada === group.name).forEach(match => {
       const { dupla1, dupla2 } = match.placar;
 
-      standings[match.dupla1].pointsFor += dupla1;
-      standings[match.dupla1].pointsAgainst += dupla2;
-      standings[match.dupla2].pointsFor += dupla2;
-      standings[match.dupla2].pointsAgainst += dupla1;
+      // Verifica se as duplas existem no objeto standings
+      if (standings[match.dupla1] && standings[match.dupla2]) {
+        standings[match.dupla1].pointsFor += dupla1;
+        standings[match.dupla1].pointsAgainst += dupla2;
+        standings[match.dupla2].pointsFor += dupla2;
+        standings[match.dupla2].pointsAgainst += dupla1;
 
-      if (isValidScore(dupla1, dupla2)) {
-        if (dupla1 > dupla2) {
-          standings[match.dupla1].wins += 1;
-        } else {
-          standings[match.dupla2].wins += 1;
+        if (isValidScore(dupla1, dupla2)) {
+          if (dupla1 > dupla2) {
+            standings[match.dupla1].wins += 1;
+          } else {
+            standings[match.dupla2].wins += 1;
+          }
         }
+      } else {
+        console.warn(`Confronto com dupla inválida: ${match.dupla1} vs ${match.dupla2}`);
       }
     });
 
