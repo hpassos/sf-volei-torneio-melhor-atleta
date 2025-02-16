@@ -13,7 +13,8 @@ import {
   Cell,
   LineChart,
   Line,
-  ScatterChart
+  ScatterChart,
+  Scatter
 } from 'recharts';
 import type { Database } from '../types';
 
