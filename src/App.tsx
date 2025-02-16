@@ -69,7 +69,8 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-indigo-600 text-white py-6 shadow-lg">
         <div className="container mx-auto px-4">
-          <h1 className="text-3xl font-bold">Sistema de Votação Entre Atletas</h1>
+          <h1 className="text-3xl font-bold">SF Vôlei</h1>
+          <h2 className="text-3xl font-bold">1º Torneio Interno</h2>
         </div>
       </header>
 
@@ -82,8 +83,8 @@ function App() {
                 key={id}
                 onClick={() => setActiveTab(id)}
                 className={`flex-shrink-0 flex items-center space-x-2 px-4 py-3 font-medium transition-colors ${activeTab === id
-                    ? 'border-b-2 border-indigo-600 text-indigo-600'
-                    : 'text-gray-600 hover:text-indigo-600'
+                  ? 'border-b-2 border-indigo-600 text-indigo-600'
+                  : 'text-gray-600 hover:text-indigo-600'
                   }`}
               >
                 <Icon className="h-5 w-5" />
