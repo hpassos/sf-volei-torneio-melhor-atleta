@@ -122,7 +122,7 @@ export default function SwordsC({ teams, matches = [], onUpdate }: Props) {
   };
 
   // Gera as semifinais com base nos melhores de cada grupo
-  const generateSemifinals = () => {
+  const generateSemifinais = () => {
     const groups = getGroups();
     if (!allGroupMatchesCompleted(groups)) {
       alert('Complete todos os jogos da fase de grupos primeiro!');
@@ -262,8 +262,8 @@ export default function SwordsC({ teams, matches = [], onUpdate }: Props) {
                     </div>
                     {match.placar.dupla1 + match.placar.dupla2 > 0 && (
                       <div className={`text-center mt-2 font-medium ${isValidScore(match.placar.dupla1, match.placar.dupla2)
-                          ? 'text-green-600'
-                          : 'text-red-600'
+                        ? 'text-green-600'
+                        : 'text-red-600'
                         }`}>
                         {match.placar.dupla1} - {match.placar.dupla2}
                       </div>
@@ -296,8 +296,8 @@ export default function SwordsC({ teams, matches = [], onUpdate }: Props) {
                     </div>
                     {match.placar.dupla1 + match.placar.dupla2 > 0 && (
                       <div className={`text-center mt-2 font-medium ${isValidScore(match.placar.dupla1, match.placar.dupla2)
-                          ? 'text-green-600'
-                          : 'text-red-600'
+                        ? 'text-green-600'
+                        : 'text-red-600'
                         }`}>
                         {match.placar.dupla1} - {match.placar.dupla2}
                       </div>
