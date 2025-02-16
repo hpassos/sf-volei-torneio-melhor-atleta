@@ -173,16 +173,21 @@ export default function SwordsC({ teams, matches = [], onUpdate }: Props) {
   // Gera a Final e o confronto para o 3º lugar a partir dos resultados das semifinais
   const generateFinalMatches = () => {
     const semifinals = matches.filter(m => m.rodada === 'Semifinal');
+
+    // Verifica se as semifinais estão definidas (exige pelo menos 2 partidas)
+    if (semifinals.length < 2) {
+      alert('As semifinais ainda não foram definidas!');
+      return;
+    }
+
+    // Verifica se todas as semifinais possuem placar válido (ou seja, já há um vencedor e um perdedor)
     if (semifinals.some(m => !isValidScore(m.placar.dupla1, m.placar.dupla2))) {
       alert('Complete todas as semifinais primeiro!');
       return;
     }
-    if (matches.some(m => m.rodada === 'Final') && matches.some(m => m.rodada === 'Terceiro Lugar')) {
-      alert('A final e o terceiro lugar já foram gerados!');
-      return;
-    }
-    const winners: string[] = [];
-    const losers: string[] = [];
+
+    const winners = [];
+    const losers = [];
     semifinals.forEach(match => {
       if (match.placar.dupla1 > match.placar.dupla2) {
         winners.push(match.dupla1);
@@ -192,7 +197,19 @@ export default function SwordsC({ teams, matches = [], onUpdate }: Props) {
         losers.push(match.dupla1);
       }
     });
-    const newMatches: Match[] = [];
+
+    // Atualiza confrontos de Final e Terceiro Lugar se já existirem, ou cria novos
+    const updatedMatches = matches.map(m => {
+      if (m.rodada === 'Final') {
+        return { ...m, dupla1: winners[0], dupla2: winners[1], placar: m.placar || { dupla1: 0, dupla2: 0 } };
+      }
+      if (m.rodada === 'Terceiro Lugar') {
+        return { ...m, dupla1: losers[0], dupla2: losers[1], placar: m.placar || { dupla1: 0, dupla2: 0 } };
+      }
+      return m;
+    });
+
+    const newMatches = [];
     if (!matches.some(m => m.rodada === 'Final')) {
       newMatches.push({
         id: crypto.randomUUID(),
@@ -211,8 +228,10 @@ export default function SwordsC({ teams, matches = [], onUpdate }: Props) {
         placar: { dupla1: 0, dupla2: 0 }
       });
     }
-    onUpdate([...matches, ...newMatches]);
+
+    onUpdate([...updatedMatches, ...newMatches]);
   };
+
 
   return (
     <div className="p-6">
