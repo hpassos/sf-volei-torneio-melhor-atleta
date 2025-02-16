@@ -39,6 +39,12 @@ export default function TeamFormation({ athletes, teams, onUpdate }: Props) {
     setGrupo('');
   };
 
+  // Função para remover uma dupla
+  const handleRemoveTeam = (teamId: number) => {
+    const updatedTeams = teams.filter(team => team.id !== teamId);
+    onUpdate(updatedTeams);
+  };
+
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6">Formação de Duplas</h2>
@@ -129,7 +135,15 @@ export default function TeamFormation({ athletes, teams, onUpdate }: Props) {
                     </span>
                   )}
                 </div>
-                <span className="text-gray-500">#{team.id}</span>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => handleRemoveTeam(team.id)}
+                    className="text-red-600 hover:text-red-800 font-medium"
+                    title="Remover dupla"
+                  >
+                    Remover
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
