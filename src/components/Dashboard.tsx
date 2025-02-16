@@ -12,7 +12,8 @@ import {
   Pie,
   Cell,
   LineChart,
-  Line
+  Line,
+  ScatterChart
 } from 'recharts';
 import type { Database } from '../types';
 
